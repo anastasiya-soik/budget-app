@@ -74,7 +74,7 @@
 | S-05 | HTTPS + HSTS | P0 | 1 | `[x]` | Railway auto-TLS; HSTS header |
 | S-06 | Rate limiting on auth endpoints | P0 | 2 | `[x]` | 60/min per IP; 429 with Retry-After |
 | S-07 | Security headers middleware | P0 | 2 | `[x]` | CSP, X-Frame-Options, etc. |
-| S-08 | Automated DB backups to R2 | Must | 3 | `[ ]` | Daily; verified restore; Phase 2 |
+| S-08 | Automated DB backups to R2 | Must | 3 | `[x]` | Daily; verified restore; Phase 2 |
 | S-09 | Dependabot for Python + npm | Must | 1 | `[x]` | PRs within 24h of new CVE |
 | S-10 | Sentry integration | Must | 2 | `[x]` | Errors in Sentry <30s; p95 tracked |
 | S-11 | GDPR: export + deletion | Should | 3 | `[ ]` | JSON export; deletion <30s; Phase 2 |
@@ -132,3 +132,4 @@
 - [x] T-07 Full-text search by note (PostgreSQL tsvector GIN, min 3 chars) — Done 2026-06-10
 - [x] T-09 Export to CSV — GET /transactions/export/csv with date filters — Done 2026-06-11
 - [x] D-04 Budget planning bars — budgets table, CRUD + analytics/budget endpoint, Budget tab — Done 2026-06-11
+- [x] S-08 Automated DB backups to R2 — pg_dump daily cron → R2, restore verify job with local postgres — Done 2026-06-10
