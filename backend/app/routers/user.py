@@ -1,12 +1,13 @@
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
+from app.limiter import limiter
 from app.models.user import User
 from app.schemas.user import ChangePasswordRequest, UpdateMeRequest, UserOut
-from app.services.user_service import change_password, update_me
+from app.services.user_service import change_password, delete_account, update_me
 
 logger = logging.getLogger(__name__)
 
@@ -39,3 +40,15 @@ async def change_password_endpoint(
         new_password=body.new_password,
         db=db,
     )
+
+
+@router.delete("/me", status_code=204)
+@limiter.limit("5/minute")
+async def delete_account_endpoint(
+    request: Request,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await delete_account(user=current_user, db=db)
+    response.delete_cookie(key="refresh_token", path="/auth/refresh")

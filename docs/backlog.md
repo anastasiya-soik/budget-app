@@ -28,7 +28,7 @@
 | A-04 | Logout + invalidate session | P0 | 1 | `[x]` | refresh_tokens.revoked=true; cookie cleared |
 | A-05 | Telegram Mini App login | P0 | 5 | `[x]` | initData HMAC verified; user upserted; JWT issued |
 | A-06 | Update email or currency | Should | 2 | `[x]` | Validation; email uniqueness check |
-| A-07 | Delete account + all data | Should | 3 | `[ ]` | Cascade delete; GDPR; Phase 2 |
+| A-07 | Delete account + all data | Should | 3 | `[x]` | Cascade delete; GDPR; Phase 2 |
 | A-08 | Change password | Should | 2 | `[x]` | Old password required; new bcrypt hash |
 
 ---
@@ -133,3 +133,4 @@
 - [x] T-09 Export to CSV — GET /transactions/export/csv with date filters — Done 2026-06-11
 - [x] D-04 Budget planning bars — budgets table, CRUD + analytics/budget endpoint, Budget tab — Done 2026-06-11
 - [x] S-08 Automated DB backups to R2 — pg_dump daily cron → R2, restore verify job with local postgres — Done 2026-06-10
+- [x] A-07 Delete account + all data — DELETE /user/me cascades transactions/budgets/goals/categories, clears refresh cookie — Done 2026-06-11

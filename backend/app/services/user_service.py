@@ -2,9 +2,13 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.budget import Budget
+from app.models.category import Category
+from app.models.goal import Goal
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.schemas.user import UpdateMeRequest
 from app.services.auth_service import hash_password, verify_password
@@ -30,6 +34,13 @@ async def update_me(user: User, data: UpdateMeRequest, db: AsyncSession) -> User
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def delete_account(user: User, db: AsyncSession) -> None:
+    for model in (Transaction, Budget, Goal, Category):
+        await db.execute(delete(model).where(model.user_id == user.id))
+    await db.delete(user)
+    await db.commit()
 
 
 async def change_password(
