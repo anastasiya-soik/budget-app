@@ -30,7 +30,8 @@ from app.main import app
 
 
 def _email() -> str:
-    return f"integ_{uuid.uuid4().hex[:10]}@test.local"
+    # Use example.com — explicitly reserved for testing per RFC 2606
+    return f"integ_{uuid.uuid4().hex[:10]}@example.com"
 
 
 @pytest.fixture
@@ -57,7 +58,7 @@ class TestRegisterIntegration:
     async def test_register_creates_user_and_returns_tokens(self, client):
         resp = await client.post(
             "/auth/register",
-            json={"email": _email(), "password": "StrongPass1!"},
+            json={"email": _email(), "password": "securepass123"},
         )
         assert resp.status_code == 200
         body = resp.json()
@@ -67,9 +68,9 @@ class TestRegisterIntegration:
 
     async def test_register_duplicate_email_rejected(self, client):
         email = _email()
-        await client.post("/auth/register", json={"email": email, "password": "StrongPass1!"})
+        await client.post("/auth/register", json={"email": email, "password": "securepass123"})
         resp = await client.post(
-            "/auth/register", json={"email": email, "password": "StrongPass1!"}
+            "/auth/register", json={"email": email, "password": "securepass123"}
         )
         assert resp.status_code == 400
 
@@ -80,30 +81,33 @@ class TestRegisterIntegration:
 
 class TestLoginIntegration:
     async def test_login_returns_valid_access_token(self, client):
-        email, pw = _email(), "StrongPass1!"
+        email, pw = _email(), "securepass123"
         await client.post("/auth/register", json={"email": email, "password": pw})
 
-        resp = await client.post("/auth/login", data={"username": email, "password": pw})
+        # Login uses JSON body with "email" field (not OAuth2 form)
+        resp = await client.post("/auth/login", json={"email": email, "password": pw})
         assert resp.status_code == 200
         assert "access_token" in resp.json()
 
     async def test_wrong_password_returns_401(self, client):
         email = _email()
-        await client.post("/auth/register", json={"email": email, "password": "StrongPass1!"})
+        await client.post("/auth/register", json={"email": email, "password": "securepass123"})
 
-        resp = await client.post("/auth/login", data={"username": email, "password": "Wrong!!"})
+        resp = await client.post(
+            "/auth/login", json={"email": email, "password": "wrongpassword"}
+        )
         assert resp.status_code == 401
 
     async def test_unknown_email_returns_401(self, client):
         resp = await client.post(
-            "/auth/login", data={"username": "nobody@test.local", "password": "any"}
+            "/auth/login", json={"email": "nobody@example.com", "password": "anypassword"}
         )
         assert resp.status_code == 401
 
 
 class TestRefreshIntegration:
     async def test_refresh_issues_new_access_token(self, client):
-        email, pw = _email(), "StrongPass1!"
+        email, pw = _email(), "securepass123"
         reg = await client.post("/auth/register", json={"email": email, "password": pw})
         old_token = reg.json()["access_token"]
 
@@ -112,13 +116,12 @@ class TestRefreshIntegration:
         assert resp.json()["access_token"] != old_token
 
     async def test_refresh_without_cookie_returns_401(self, client):
-        # fresh client has no cookie
         resp = await client.post("/auth/refresh")
         assert resp.status_code == 401
 
     async def test_refresh_token_is_rotated(self, client):
         """Using the same refresh token twice should fail (rotation)."""
-        email, pw = _email(), "StrongPass1!"
+        email, pw = _email(), "securepass123"
         reg = await client.post("/auth/register", json={"email": email, "password": pw})
         old_cookie = reg.cookies.get("refresh_token")
 
@@ -133,14 +136,14 @@ class TestRefreshIntegration:
 
 class TestLogoutIntegration:
     async def test_logout_clears_session(self, client):
-        email, pw = _email(), "StrongPass1!"
+        email, pw = _email(), "securepass123"
         reg = await client.post("/auth/register", json={"email": email, "password": pw})
         token = reg.json()["access_token"]
 
-        logout = await client.post(
+        logout_resp = await client.post(
             "/auth/logout", headers={"Authorization": f"Bearer {token}"}
         )
-        assert logout.status_code == 204
+        assert logout_resp.status_code == 200
 
         # refresh should now fail since the token was revoked
         resp = await client.post("/auth/refresh")
