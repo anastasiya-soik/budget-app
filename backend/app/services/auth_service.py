@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, unquote
 
 import bcrypt as _bcrypt
+import jwt
 from fastapi import HTTPException, Request, status
-from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
