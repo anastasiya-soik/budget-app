@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 from io import BytesIO
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -35,7 +35,11 @@ def _override(app, user, db):
     app.dependency_overrides[get_db] = override_db
 
 
-CSV_CONTENT = b"Date,Amount,Category,Note\n2026-01-01,50.00,Groceries,lunch\n2026-01-02,bad,Groceries,\n"
+CSV_CONTENT = (
+    b"Date,Amount,Category,Note\n"
+    b"2026-01-01,50.00,Groceries,lunch\n"
+    b"2026-01-02,bad,Groceries,\n"
+)
 
 
 @pytest.mark.asyncio
@@ -80,7 +84,11 @@ async def test_import_confirm_happy():
     cat.user_id = _USER_ID
 
     db = AsyncMock()
-    db.execute = AsyncMock(return_value=MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[cat])))))
+    scalars_mock = MagicMock()
+    scalars_mock.all.return_value = [cat]
+    execute_result = MagicMock()
+    execute_result.scalars.return_value = scalars_mock
+    db.execute = AsyncMock(return_value=execute_result)
     db.commit = AsyncMock()
     db.add_all = MagicMock()
 

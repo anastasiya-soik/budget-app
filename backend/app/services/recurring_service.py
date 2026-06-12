@@ -110,7 +110,7 @@ async def delete(rt_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> None
 
 
 async def process_due(db: AsyncSession) -> int:
-    """Create transactions for all active recurring entries due today or earlier. Returns count created."""
+    """Create transactions for all active recurring entries due today or earlier."""
     today = datetime.now(timezone.utc).date()
     result = await db.execute(
         select(RecurringTransaction).where(
