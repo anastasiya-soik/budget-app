@@ -51,6 +51,18 @@ const Settings = () => {
   const [pwError, setPwError] = useState('')
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+
+  const deleteMutation = useMutation({
+    mutationFn: () => authApi.deleteAccount(),
+    onSuccess: () => logout(),
+  })
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try { await authApi.exportData() } finally { setIsExporting(false) }
+  }
 
   const updateMutation = useMutation({
     mutationFn: (body) => authApi.updateMe(body),
@@ -242,6 +254,45 @@ const Settings = () => {
               <motion.div whileTap={{ scale: 0.97 }} onClick={logout}
                 style={{ flex: 1, borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: 'var(--amaranth-btn)', color: 'white', userSelect: 'none' }}
               >{t('settings.signOut')}</motion.div>
+            </div>
+          </div>
+        )}
+
+        <motion.div
+          whileTap={{ scale: 0.97 }}
+          onClick={isExporting ? undefined : handleExport}
+          style={{
+            borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500,
+            textAlign: 'center', cursor: isExporting ? 'not-allowed' : 'pointer', userSelect: 'none',
+            background: 'var(--bg)', border: '1px solid var(--border-card)', color: 'var(--text-secondary)',
+            opacity: isExporting ? 0.6 : 1,
+          }}
+        >
+          {isExporting ? '…' : t('settings.exportData')}
+        </motion.div>
+
+        {!showDeleteConfirm ? (
+          <motion.div
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowDeleteConfirm(true)}
+            style={{
+              borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500,
+              textAlign: 'center', cursor: 'pointer', userSelect: 'none',
+              background: 'rgba(229,43,80,0.04)', border: '1px solid rgba(229,43,80,0.12)', color: '#E52B50',
+            }}
+          >
+            {t('settings.deleteAccount')}
+          </motion.div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <p style={{ fontSize: '13px', color: '#E52B50', textAlign: 'center', margin: 0 }}>{t('settings.confirmDelete')}</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <motion.div whileTap={{ scale: 0.97 }} onClick={() => setShowDeleteConfirm(false)}
+                style={{ flex: 1, borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 500, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-card)', color: 'var(--text-primary)', background: 'var(--surface)', userSelect: 'none' }}
+              >{t('settings.cancel')}</motion.div>
+              <motion.div whileTap={{ scale: 0.97 }} onClick={deleteMutation.isPending ? undefined : () => deleteMutation.mutate()}
+                style={{ flex: 1, borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: deleteMutation.isPending ? 'not-allowed' : 'pointer', background: '#E52B50', color: 'white', userSelect: 'none', opacity: deleteMutation.isPending ? 0.7 : 1 }}
+              >{deleteMutation.isPending ? t('settings.deleting') : t('settings.deleteAccount')}</motion.div>
             </div>
           </div>
         )}
