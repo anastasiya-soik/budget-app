@@ -92,23 +92,29 @@ const BudgetModal = ({ categories, month, existing, onClose }) => {
   )
 }
 
+const shiftMonth = (m, delta) => {
+  const [y, mo] = m.split('-').map(Number)
+  const d = new Date(y, mo - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
 const Budget = () => {
   const { user } = useAuthStore()
   const { t } = useTranslation()
   const currency = user?.currency || 'USD'
-  const month = currentMonth()
 
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth())
   const [modal, setModal] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: bars = [], isLoading: barsLoading } = useQuery({
-    queryKey: ['budget-bars', month],
-    queryFn: () => budgetsApi.bars(month),
+    queryKey: ['budget-bars', selectedMonth],
+    queryFn: () => budgetsApi.bars(selectedMonth),
   })
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ['budgets', month],
-    queryFn: () => budgetsApi.list(month),
+    queryKey: ['budgets', selectedMonth],
+    queryFn: () => budgetsApi.list(selectedMonth),
   })
 
   const { data: categories = [] } = useQuery({
@@ -130,8 +136,12 @@ const Budget = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{t('budget.title')}</h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{month}</p>
+          <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>{t('budget.title')}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button onClick={() => setSelectedMonth(m => shiftMonth(m, -1))} style={{ width: '22px', height: '22px', borderRadius: '6px', border: '1px solid var(--border-card)', background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontSize: '12px' }}>‹</button>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', minWidth: '64px', textAlign: 'center' }}>{selectedMonth}</span>
+            <button onClick={() => setSelectedMonth(m => shiftMonth(m, 1))} disabled={selectedMonth >= currentMonth()} style={{ width: '22px', height: '22px', borderRadius: '6px', border: '1px solid var(--border-card)', background: 'var(--surface)', cursor: selectedMonth >= currentMonth() ? 'not-allowed' : 'pointer', color: selectedMonth >= currentMonth() ? 'var(--text-muted)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontSize: '12px', opacity: selectedMonth >= currentMonth() ? 0.4 : 1 }}>›</button>
+          </div>
         </div>
         <motion.div whileTap={{ scale: 0.96 }} onClick={() => setModal({ existing: null })}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 500, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
@@ -226,7 +236,7 @@ const Budget = () => {
         {modal !== null && (
           <BudgetModal
             categories={categories}
-            month={month}
+            month={selectedMonth}
             existing={modal.existing}
             onClose={() => setModal(null)}
           />

@@ -16,7 +16,9 @@
     "monthlyTrend": "6-Month Trend",
     "noTrendData": "No trend data yet",
     "addIncome": "Income",
-    "addExpense": "Expense"
+    "addExpense": "Expense",
+    "savingsRate": "Saved {{rate}}% of income",
+    "avgExpense": "Avg. expense: {{amount}} / mo"
   },
   "transactions": {
     "title": "Transactions",
@@ -65,6 +67,7 @@
     "importDone": "Import complete!",
     "importStats": "{{created}} transactions created, {{skipped}} rows skipped.",
     "close": "Close",
+    "confirmDelete": "Delete?",
     "recurringTitle": "Recurring transactions",
     "recurringNew": "New recurring transaction",
     "recurringNone": "No recurring transactions yet.",

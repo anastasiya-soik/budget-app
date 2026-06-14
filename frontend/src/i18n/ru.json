@@ -16,7 +16,9 @@
     "monthlyTrend": "Тренд за 6 месяцев",
     "noTrendData": "Данных пока нет",
     "addIncome": "Доход",
-    "addExpense": "Расход"
+    "addExpense": "Расход",
+    "savingsRate": "Сохранено {{rate}}% дохода",
+    "avgExpense": "Ср. расходы: {{amount}} / мес"
   },
   "transactions": {
     "title": "Транзакции",
@@ -65,6 +67,7 @@
     "importDone": "Импорт завершён!",
     "importStats": "Создано транзакций: {{created}}, пропущено строк: {{skipped}}.",
     "close": "Закрыть",
+    "confirmDelete": "Удалить?",
     "recurringTitle": "Повторяющиеся платежи",
     "recurringNew": "Новый повторяющийся платёж",
     "recurringNone": "Пока нет повторяющихся платежей.",
