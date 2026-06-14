@@ -5,6 +5,7 @@ vi.mock('../api/client', () => ({
     post: vi.fn(),
     get: vi.fn(),
     patch: vi.fn(),
+    delete: vi.fn(),
   },
 }))
 
@@ -84,5 +85,43 @@ describe('authApi.changePassword', () => {
       old_password: 'old123',
       new_password: 'new1234',
     })
+  })
+})
+
+describe('authApi.deleteAccount', () => {
+  it('sends DELETE /user/me', async () => {
+    client.delete.mockResolvedValue({ data: undefined })
+    await authApi.deleteAccount()
+    expect(client.delete).toHaveBeenCalledWith('/user/me')
+  })
+})
+
+describe('authApi.exportData', () => {
+  it('calls GET /user/me/export with responseType blob and triggers download', async () => {
+    const blob = new Blob(['{}'], { type: 'application/json' })
+    client.get.mockResolvedValue({ data: blob })
+
+    const mockUrl = 'blob:http://localhost/fake'
+    const createObjectURL = vi.fn().mockReturnValue(mockUrl)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+
+    const clickSpy = vi.fn()
+    const origCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      const el = origCreate(tag)
+      if (tag === 'a') el.click = clickSpy
+      return el
+    })
+
+    await authApi.exportData()
+
+    expect(client.get).toHaveBeenCalledWith('/user/me/export', { responseType: 'blob' })
+    expect(createObjectURL).toHaveBeenCalled()
+    expect(clickSpy).toHaveBeenCalled()
+    expect(revokeObjectURL).toHaveBeenCalledWith(mockUrl)
+
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 })
