@@ -121,7 +121,7 @@ const LoginPage = () => {
             {tgLoading && (
               <>
                 <p style={{ color: 'var(--text-primary)', fontWeight: 600, margin: '12px 0 4px' }}>purrse</p>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>Входим через Telegram…</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>{t('auth.telegramLoading')}</p>
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                   <div style={{ width: '24px', height: '24px', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                 </div>
@@ -129,12 +129,12 @@ const LoginPage = () => {
             )}
             {tgError && (
               <>
-                <p style={{ color: 'var(--text-primary)', fontWeight: 600, margin: '12px 0 4px' }}>Не удалось войти</p>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 16px' }}>Попробуй ещё раз или войди по почте</p>
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, margin: '12px 0 4px' }}>{t('auth.telegramError')}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '0 0 16px' }}>{t('auth.telegramErrorHint')}</p>
                 <motion.div whileTap={{ scale: 0.97 }} onClick={tryTelegramLogin}
                   style={{ background: 'var(--amaranth-btn)', color: 'white', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', userSelect: 'none', marginBottom: '10px' }}
                 >
-                  Повторить
+                  {t('auth.telegramRetry')}
                 </motion.div>
               </>
             )}

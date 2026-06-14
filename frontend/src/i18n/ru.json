@@ -74,7 +74,9 @@
     "monthly": "Каждый месяц",
     "yearly": "Каждый год",
     "startDate": "Дата начала",
-    "nextDate": "след."
+    "nextDate": "след.",
+    "pause": "Пауза",
+    "resume": "Возобновить"
   },
   "goals": {
     "title": "Цели",
@@ -139,7 +141,11 @@
     "passwordChanged": "Пароль изменён!",
     "updateEmail": "Изменить email",
     "newEmail": "Новый email",
-    "emailUpdated": "Email обновлён!"
+    "emailUpdated": "Email обновлён!",
+    "exportData": "Скачать мои данные",
+    "deleteAccount": "Удалить аккаунт",
+    "confirmDelete": "Вы уверены? Это действие необратимо. Все данные будут удалены.",
+    "deleting": "Удаление…"
   },
   "budget": {
     "title": "Бюджет",
@@ -175,6 +181,10 @@
     "passwordPlaceholderNew": "Минимум 8 символов",
     "emptyFields": "Введите email и пароль",
     "signingIn": "Вход…",
-    "creatingAccount": "Создание аккаунта…"
+    "creatingAccount": "Создание аккаунта…",
+    "telegramLoading": "Входим через Telegram…",
+    "telegramError": "Не удалось войти",
+    "telegramErrorHint": "Попробуй ещё раз или войди по почте",
+    "telegramRetry": "Повторить"
   }
 }

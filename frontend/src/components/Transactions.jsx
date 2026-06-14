@@ -361,6 +361,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const { data: recurringList = [] } = useQuery({ queryKey: ['recurring'], queryFn: recurringApi.list })
   const queryClient = useQueryClient()
   const deleteRecurringMutation = useMutation({ mutationFn: recurringApi.remove, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recurring'] }) })
+  const toggleRecurringMutation = useMutation({ mutationFn: ({ id, is_active }) => recurringApi.update(id, { is_active }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recurring'] }) })
 
   const { data, isLoading, isFetchingNextPage, fetchNextPage, hasNextPage } = useInfiniteQuery({
     queryKey: ['transactions', filters],
@@ -554,6 +555,16 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t('transactions.nextDate')}: {rt.next_date}</span>
+                  <button
+                    title={rt.is_active ? t('transactions.pause') : t('transactions.resume')}
+                    style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                    onClick={() => toggleRecurringMutation.mutate({ id: rt.id, is_active: !rt.is_active })}
+                  >
+                    {rt.is_active
+                      ? <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" /></svg>
+                      : <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
+                    }
+                  </button>
                   <button
                     style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
                     onClick={() => deleteRecurringMutation.mutate(rt.id)}
