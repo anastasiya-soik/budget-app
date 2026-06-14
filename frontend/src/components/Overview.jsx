@@ -74,6 +74,11 @@ const Overview = ({ onQuickAdd }) => {
         <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0 }}>
           {formatMoney(balanceCents, currency)}
         </p>
+        {summary?.income_cents > 0 && (
+          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '12px', margin: '8px 0 0', fontWeight: 500 }}>
+            {t('overview.savingsRate', { rate: Math.max(0, Math.round(((summary.income_cents - summary.expense_cents) / summary.income_cents) * 100)) })}
+          </p>
+        )}
       </motion.div>
 
       {/* Quick add buttons */}
@@ -114,6 +119,11 @@ const Overview = ({ onQuickAdd }) => {
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.expenses')}</p>
           <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0 }}>{formatMoney(summary?.expense_cents ?? 0, currency)}</p>
+          {trendData?.items?.length >= 2 && (() => {
+            const slice = trendData.items.slice(-3)
+            const avg = Math.round(slice.reduce((s, i) => s + i.expense_cents, 0) / slice.length)
+            return <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '4px 0 0' }}>{t('overview.avgExpense', { amount: formatMoney(avg, currency) })}</p>
+          })()}
         </motion.div>
       </div>
 
