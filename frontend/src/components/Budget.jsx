@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import budgetsApi from '../api/budgets'
 import categoriesApi from '../api/categories'
 import useAuthStore from '../store/authStore'
-import { formatMoney, currentMonth } from '../utils'
+import { formatMoney, currentMonth, apiError } from '../utils'
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
@@ -29,7 +29,7 @@ const BudgetModal = ({ categories, month, existing, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['budget-bars'] })
       onClose()
     },
-    onError: (err) => setError(err?.response?.data?.detail || t('budget.saveError')),
+    onError: (err) => setError(apiError(err) || t('budget.saveError')),
   })
 
   const expenseCategories = categories.filter((c) => c.type === 'expense')
