@@ -227,7 +227,7 @@ const Settings = () => {
           {t('settings.memberSince')}{' '}
           <span style={{ color: 'var(--text-primary)' }}>
             {user?.created_at
-              ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+              ? (() => { try { return new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) } catch { return user.created_at.slice(0, 7) } })()
               : '—'}
           </span>
         </div>
