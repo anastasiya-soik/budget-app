@@ -261,12 +261,12 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
 
   const handleSave = () => {
     const amountCents = Math.round(parseFloat(amount) * 100)
-    if (!amountCents || amountCents <= 0 || !categoryId || !txDate) {
+    if (!amountCents || amountCents <= 0 || !txDate) {
       setLocalError(t('transactions.fillRequired'))
       return
     }
     setLocalError('')
-    onSave({ amount_cents: amountCents, category_id: categoryId, tx_date: txDate, note: note.trim() || null })
+    onSave({ amount_cents: amountCents, category_id: categoryId || null, tx_date: txDate, note: note.trim() || null })
   }
 
   const inputStyle = { width: '100%', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }
@@ -295,15 +295,21 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>{t('transactions.category')}</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={{ ...inputStyle }}>
-              <option value="">{t('transactions.allCategories')}</option>
-              <optgroup label={t('transactions.expense')}>
-                {categories.filter((c) => c.type === 'expense').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </optgroup>
-              <optgroup label={t('transactions.income')}>
-                {categories.filter((c) => c.type === 'income').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </optgroup>
-            </select>
+            {categories.length === 0 ? (
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', background: 'var(--bg)', border: '1px solid var(--border-card)', borderRadius: '10px', padding: '10px 14px' }}>
+                {t('transactions.noCategoriesHint')}
+              </div>
+            ) : (
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={{ ...inputStyle }}>
+                <option value="">{t('transactions.allCategories')}</option>
+                <optgroup label={t('transactions.expense')}>
+                  {categories.filter((c) => c.type === 'expense').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>
+                <optgroup label={t('transactions.income')}>
+                  {categories.filter((c) => c.type === 'income').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>
+              </select>
+            )}
           </div>
 
           <div>

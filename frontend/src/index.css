@@ -66,3 +66,17 @@ html.dark {
   --badge-b: rgba(100,160,255,0.15);
   --badge-b-color: #8BBFFF;
 }
+
+/* Prevent iOS Safari zoom on input focus (triggered when font-size < 16px) */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Fix dark-mode native form control rendering (select, date, etc.) */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color-scheme: dark;
+}
