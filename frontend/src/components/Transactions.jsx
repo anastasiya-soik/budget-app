@@ -266,8 +266,12 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
       setLocalError(t('transactions.fillRequired'))
       return
     }
+    if (!categoryId) {
+      setLocalError(categories.length === 0 ? t('transactions.noCategoriesHint') : t('transactions.selectCategory'))
+      return
+    }
     setLocalError('')
-    onSave({ amount_cents: amountCents, category_id: categoryId || null, tx_date: txDate, note: note.trim() || null })
+    onSave({ amount_cents: amountCents, category_id: categoryId, tx_date: txDate, note: note.trim() || null })
   }
 
   const inputStyle = { width: '100%', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }
@@ -332,8 +336,8 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
           <motion.div whileTap={{ scale: 0.97 }} onClick={onClose}
             style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-card)', color: 'var(--text-primary)', background: 'var(--surface)', userSelect: 'none' }}
           >{t('transactions.cancel')}</motion.div>
-          <motion.div whileTap={{ scale: 0.97 }} onClick={loading ? undefined : handleSave}
-            style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: loading ? 'not-allowed' : 'pointer', background: 'var(--amaranth-btn)', color: 'white', opacity: loading ? 0.7 : 1, userSelect: 'none' }}
+          <motion.div whileTap={{ scale: 0.97 }} onClick={(loading || categories.length === 0) ? undefined : handleSave}
+            style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: (loading || categories.length === 0) ? 'not-allowed' : 'pointer', background: 'var(--amaranth-btn)', color: 'white', opacity: (loading || categories.length === 0) ? 0.5 : 1, userSelect: 'none' }}
           >{loading ? t('transactions.saving') : t('transactions.save')}</motion.div>
         </div>
       </motion.div>
