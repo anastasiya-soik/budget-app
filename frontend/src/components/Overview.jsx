@@ -10,6 +10,7 @@ import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth } from '../utils'
 
 const FALLBACK_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981', '#2060D0']
+const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -69,7 +70,7 @@ const Overview = ({ onQuickAdd }) => {
         <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-50px', left: '35%', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '6px', marginTop: 0 }}>
-          {t('overview.balance')} · {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+          {t('overview.balance')} · {EN_MONTHS[new Date().getMonth()]} {new Date().getFullYear()}
         </p>
         <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0 }}>
           {formatMoney(balanceCents, currency)}
