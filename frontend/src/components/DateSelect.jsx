@@ -50,7 +50,7 @@ export function DateSelect({ value, onChange, style }) {
     appearance: 'none',
     WebkitAppearance: 'none',
     textAlign: 'center',
-    ...style,
+    ...(style || {}),
   }
 
   return (
