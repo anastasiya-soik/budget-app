@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import goalsApi from '../api/goals'
 import useAuthStore from '../store/authStore'
 import { formatMoney, formatDate, today, apiError } from '../utils'
+import { DateSelect } from './DateSelect'
 
 const GOAL_GRADIENTS = [
   { bar: 'linear-gradient(90deg, #E52B50, #64A0FF)', accent: '#E52B50' },
@@ -83,9 +84,7 @@ const GoalModal = ({ goal, onSave, onClose, loading, error }) => {
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>
               {t('goals.deadline')} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({t('goals.optional')})</span>
             </label>
-            <input type="date" value={deadline} min={today()} onChange={(e) => setDeadline(e.target.value)}
-              style={{ width: '100%', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }}
-            />
+            <DateSelect value={deadline || today()} onChange={setDeadline} />
           </div>
 
           {(localError || error) && <div style={{ background: 'rgba(229,43,80,0.08)', border: '1px solid rgba(229,43,80,0.2)', color: '#E52B50', fontSize: '13px', borderRadius: '10px', padding: '10px 14px' }}>{localError || error}</div>}

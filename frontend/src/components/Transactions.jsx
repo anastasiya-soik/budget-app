@@ -7,6 +7,7 @@ import categoriesApi from '../api/categories'
 import recurringApi from '../api/recurring'
 import useAuthStore from '../store/authStore'
 import { formatMoney, formatDate, today, firstOfMonth, apiError } from '../utils'
+import { DateSelect } from './DateSelect'
 
 const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(13,10,16,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }
 const cardStyle = { background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 8px 40px rgba(0,0,0,0.2)', maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto' }
@@ -226,7 +227,7 @@ const RecurringModal = ({ onClose, onSuccess }) => {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>{t('transactions.startDate')}</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle2} />
+            <DateSelect value={startDate} onChange={setStartDate} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>{t('transactions.note')} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({t('transactions.optional')})</span></label>
@@ -314,7 +315,7 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>{t('transactions.date')}</label>
-            <input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} style={inputStyle} />
+            <DateSelect value={txDate} onChange={setTxDate} />
           </div>
 
           <div>
@@ -423,12 +424,12 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
       <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '14px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }} className="sm:grid-cols-4">
           {[
-            { label: t('transactions.from'), key: 'date_from', type: 'date' },
-            { label: t('transactions.to'), key: 'date_to', type: 'date' },
-          ].map(({ label, key, type }) => (
+            { label: t('transactions.from'), key: 'date_from' },
+            { label: t('transactions.to'), key: 'date_to' },
+          ].map(({ label, key }) => (
             <div key={key}>
               <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{label}</label>
-              <input type={type} value={filters[key]} onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
+              <DateSelect value={filters[key]} onChange={(v) => setFilters((f) => ({ ...f, [key]: v }))} />
             </div>
           ))}
           <div>
