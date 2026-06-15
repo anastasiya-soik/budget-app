@@ -25,11 +25,15 @@ const queryClient = new QueryClient({
   },
 })
 
-const ErrorFallback = () => (
+const ErrorFallback = ({ error }) => (
   <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '24px' }}>
     <div style={{ fontSize: '32px' }}>🐱</div>
     <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Что-то пошло не так</p>
-    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, textAlign: 'center' }}>Попробуй перезагрузить приложение</p>
+    {error?.message && (
+      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, textAlign: 'center', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace', background: 'rgba(0,0,0,0.04)', borderRadius: '8px', padding: '8px 12px' }}>
+        {error.message}
+      </p>
+    )}
     <button
       onClick={() => window.location.reload()}
       style={{ marginTop: '8px', padding: '10px 20px', borderRadius: '10px', background: 'var(--amaranth-btn)', color: 'white', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
@@ -41,7 +45,7 @@ const ErrorFallback = () => (
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+    <Sentry.ErrorBoundary fallback={({ error }) => <ErrorFallback error={error} />}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <App />
