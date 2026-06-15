@@ -18,23 +18,23 @@ _PAGE_SIZE_MAX = 100
 async def create(
     user_id: uuid.UUID,
     amount_cents: int,
-    category_id: uuid.UUID,
+    category_id: uuid.UUID | None,
     tx_date: date,
     note: str | None,
     db: AsyncSession,
 ) -> Transaction:
-    # Verify category exists and belongs to this user
-    cat_result = await db.execute(
-        select(Category).where(
-            Category.id == category_id,
-            Category.user_id == user_id,
+    if category_id is not None:
+        cat_result = await db.execute(
+            select(Category).where(
+                Category.id == category_id,
+                Category.user_id == user_id,
+            )
         )
-    )
-    if cat_result.scalar_one_or_none() is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Category not found or does not belong to user",
-        )
+        if cat_result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Category not found or does not belong to user",
+            )
 
     tx = Transaction(
         user_id=user_id,
