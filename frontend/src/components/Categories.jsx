@@ -106,7 +106,7 @@ const CategoryRow = ({ category, onEdit, onDelete }) => {
         <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: category.color }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{category.name}</span>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{category.name}</span>
       </div>
       <div style={{ display: 'flex', gap: '2px' }}>
         <button style={iconBtn} onClick={() => onEdit(category)}

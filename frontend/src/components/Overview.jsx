@@ -72,7 +72,7 @@ const Overview = ({ onQuickAdd }) => {
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '6px', marginTop: 0 }}>
           {t('overview.balance')} · {EN_MONTHS[new Date().getMonth()]} {new Date().getFullYear()}
         </p>
-        <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0 }}>
+        <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {formatMoney(balanceCents, currency)}
         </p>
         {summary?.income_cents > 0 && (
@@ -107,7 +107,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.income')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0 }}>{formatMoney(summary?.income_cents ?? 0, currency)}</p>
+          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.income_cents ?? 0, currency)}</p>
         </motion.div>
 
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible"
@@ -119,7 +119,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.expenses')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0 }}>{formatMoney(summary?.expense_cents ?? 0, currency)}</p>
+          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.expense_cents ?? 0, currency)}</p>
           {trendData?.items?.length >= 2 && (() => {
             const slice = trendData.items.slice(-3)
             const avg = Math.round(slice.reduce((s, i) => s + i.expense_cents, 0) / slice.length)

@@ -506,7 +506,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(tx.tx_date)}</span>
                 </div>
 
-                <div style={{ fontSize: '13px', fontWeight: 600, flexShrink: 0, color: isExpense ? 'var(--amaranth)' : '#10b981' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, flexShrink: 0, color: isExpense ? 'var(--amaranth)' : '#10b981', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {isExpense ? '−' : '+'}{formatMoney(tx.amount_cents, currency)}
                 </div>
 
@@ -576,10 +576,10 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {recurringList.map((rt) => (
               <div key={rt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg)', borderRadius: '10px', border: '1px solid var(--border-card)', opacity: rt.is_active ? 1 : 0.5 }}>
-                <div>
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
                   <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{formatMoney(rt.amount_cents, currency)}</span>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '8px' }}>{t(`transactions.${rt.frequency}`)}</span>
-                  {rt.note && <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>— {rt.note}</span>}
+                  {rt.note && <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100px', verticalAlign: 'middle' }}>— {rt.note}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t('transactions.nextDate')}: {rt.next_date}</span>

@@ -171,7 +171,7 @@ const Goals = () => {
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{goal.name}</h3>
+                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>{goal.name}</h3>
                       {isComplete && (
                         <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
                           {t('goals.done')}
@@ -202,7 +202,7 @@ const Goals = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{formatMoney(goal.current_cents, currency)} {t('goals.saved')}</span>
-                  <span style={{ fontWeight: 600, background: gradient.bar, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  <span style={{ fontWeight: 600, background: gradient.bar, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>
                     {progress}% {t('goals.of')} {formatMoney(goal.target_cents, currency)}
                   </span>
                 </div>

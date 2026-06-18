@@ -183,7 +183,7 @@ const Budget = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>{item.name}</span>
                     {isOver && <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 7px', borderRadius: '20px', background: 'rgba(229,43,80,0.1)', color: '#E52B50' }}>{t('budget.over')}</span>}
                     {isWarning && <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 7px', borderRadius: '20px', background: 'rgba(232,160,32,0.12)', color: '#C07010' }}>80%</span>}
                   </div>
@@ -211,9 +211,9 @@ const Budget = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                  <span>{formatMoney(item.actual_cents, currency)} {t('budget.spent')}</span>
-                  <span style={{ fontWeight: 600, color: isOver ? '#E52B50' : 'var(--text-primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', gap: '8px' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(item.actual_cents, currency)} {t('budget.spent')}</span>
+                  <span style={{ fontWeight: 600, color: isOver ? '#E52B50' : 'var(--text-primary)', flexShrink: 0 }}>
                     {item.pct}% {t('budget.of')} {formatMoney(item.limit_cents, currency)}
                   </span>
                 </div>
