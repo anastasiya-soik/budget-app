@@ -88,6 +88,7 @@ from app.routers import (  # noqa: E402
     auth,
     budgets,
     categories,
+    feedback,
     goals,
     recurring,
     transactions,
@@ -102,6 +103,7 @@ app.include_router(goals.router)
 app.include_router(analytics.router)
 app.include_router(budgets.router)
 app.include_router(recurring.router)
+app.include_router(feedback.router)
 
 
 @app.get("/health", tags=["health"])

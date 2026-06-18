@@ -187,5 +187,15 @@
     "emptyFields": "Please enter email and password",
     "signingIn": "Signing in...",
     "creatingAccount": "Creating account..."
+  },
+  "feedback": {
+    "button": "Feedback",
+    "title": "Send Feedback",
+    "placeholder": "Tell us what you think...",
+    "required": "Please enter some feedback",
+    "tooShort": "Feedback must be at least 3 characters",
+    "cancel": "Cancel",
+    "send": "Send",
+    "sending": "Sending…"
   }
 }

@@ -10,6 +10,7 @@ import Goals from '../components/Goals'
 import Budget from '../components/Budget'
 import Categories from '../components/Categories'
 import Settings from '../components/Settings'
+import FeedbackModal from '../components/FeedbackModal'
 
 const ONBOARDING_KEY = 'purrse-onboarded'
 
@@ -83,6 +84,7 @@ const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState('overview')
   const [pendingQuickAdd, setPendingQuickAdd] = useState(null)
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem(ONBOARDING_KEY))
+  const [showFeedback, setShowFeedback] = useState(false)
   const { user } = useAuthStore()
 
   const quickAddTransaction = (type) => {
@@ -133,6 +135,9 @@ const DashboardPage = () => {
         {showOnboarding && (
           <OnboardingModal onDone={closeOnboarding} onGoCategories={goCategories} />
         )}
+        {showFeedback && (
+          <FeedbackModal onClose={() => setShowFeedback(false)} />
+        )}
       </AnimatePresence>
 
       {/* ── Mobile top bar ── */}
@@ -150,6 +155,9 @@ const DashboardPage = () => {
             }}>purrse</span>
           </button>
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <button onClick={() => setShowFeedback(true)} style={{ ...ghostBtn, padding: '4px 8px', fontSize: '14px' }}>
+              💬
+            </button>
             <button onClick={toggleTheme} style={{ ...ghostBtn, padding: '4px 8px', fontSize: '14px' }}>
               {isDark ? '☀️' : '🌙'}
             </button>
@@ -224,6 +232,9 @@ const DashboardPage = () => {
           {/* Bottom */}
           <div style={{ padding: '12px 16px 20px', borderTop: '0.5px solid var(--border)', position: 'relative', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setShowFeedback(true)} style={{ ...ghostBtn, fontSize: '14px' }}>
+                💬
+              </button>
               <button onClick={toggleTheme} style={ghostBtn}>
                 {isDark ? '☀️' : '🌙'}
               </button>
