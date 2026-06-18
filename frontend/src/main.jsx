@@ -7,13 +7,13 @@ import App from './App'
 import './index.css'
 import './i18n/index.js'
 
-if (import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [Sentry.browserTracingIntegration()],
-    tracesSampleRate: 0.2,
-  })
-}
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN || 'https://8ee70d0a04fc1d3a553eb99f292469e5@o4511170128969728.ingest.de.sentry.io/4511552705855568'
+
+Sentry.init({
+  dsn: SENTRY_DSN,
+  integrations: [Sentry.browserTracingIntegration()],
+  tracesSampleRate: 0.2,
+})
 
 const queryClient = new QueryClient({
   defaultOptions: {
