@@ -486,7 +486,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
           ].map(({ label, key }) => (
             <div key={key}>
               <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{label}</label>
-              <DateSelect value={filters[key]} onChange={(v) => setFilters((f) => ({ ...f, [key]: v }))} />
+              <DateSelect value={filters[key]} onChange={(v) => setFilters((f) => ({ ...f, [key]: v }))} style={{ padding: '6px 3px', fontSize: '12px' }} />
             </div>
           ))}
           <div>

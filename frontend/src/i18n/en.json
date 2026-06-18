@@ -112,6 +112,7 @@
     "add": "Add",
     "noCategories": "No categories yet",
     "noCategoriesHint": "Create your first category to start tracking",
+    "seedDefaults": "Add default categories",
     "expense": "Expense",
     "income": "Income",
     "newTitle": "New Category",

@@ -20,6 +20,11 @@ const categoriesApi = {
     const { data } = await client.delete(`/categories/${id}`)
     return data
   },
+
+  seedDefaults: async () => {
+    const { data } = await client.post('/categories/seed-defaults')
+    return data
+  },
 }
 
 export default categoriesApi

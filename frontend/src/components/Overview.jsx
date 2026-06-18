@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +23,7 @@ const Overview = ({ onQuickAdd }) => {
   const { t } = useTranslation()
   const currency = user?.currency || 'USD'
   const month = currentMonth()
+  const [trendPeriod, setTrendPeriod] = useState(6)
 
   const { data: summary, isLoading: sumLoading } = useQuery({
     queryKey: ['analytics', 'summary', month],
@@ -34,8 +36,8 @@ const Overview = ({ onQuickAdd }) => {
   })
 
   const { data: trendData, isLoading: trendLoading } = useQuery({
-    queryKey: ['analytics', 'trend'],
-    queryFn: () => analyticsApi.trend(6),
+    queryKey: ['analytics', 'trend', trendPeriod],
+    queryFn: () => analyticsApi.trend(trendPeriod),
   })
 
   const trendItems = (trendData?.items || []).map((item) => ({
@@ -161,7 +163,33 @@ const Overview = ({ onQuickAdd }) => {
         <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible"
           style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '20px' }}
         >
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', marginTop: 0 }}>{t('overview.monthlyTrend')}</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.monthlyTrend')}</h3>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[
+                { label: '1M', months: 1 },
+                { label: '6M', months: 6 },
+                { label: '1Y', months: 12 },
+              ].map(({ label, months }) => (
+                <button
+                  key={label}
+                  onClick={() => setTrendPeriod(months)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: trendPeriod === months ? 'var(--amaranth-btn)' : 'var(--bg)',
+                    color: trendPeriod === months ? 'white' : 'var(--text-muted)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {trendItems.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', fontSize: '13px', color: 'var(--text-muted)' }}>
               {t('overview.noTrendData')}

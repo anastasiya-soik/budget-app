@@ -137,6 +137,7 @@ const Categories = () => {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['categories'] })
 
   const createMutation = useMutation({ mutationFn: categoriesApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
+  const seedMutation = useMutation({ mutationFn: categoriesApi.seedDefaults, onSuccess: invalidate })
   const updateMutation = useMutation({ mutationFn: ({ id, data }) => categoriesApi.update(id, data), onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
   const deleteMutation = useMutation({ mutationFn: categoriesApi.remove, onSuccess: invalidate })
 
@@ -173,7 +174,12 @@ const Categories = () => {
           style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px' }}
         >
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('categories.noCategories')}</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{t('categories.noCategoriesHint')}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>{t('categories.noCategoriesHint')}</p>
+          <motion.button whileTap={{ scale: 0.97 }} onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending}
+            style={{ padding: '10px 20px', borderRadius: '10px', background: 'var(--amaranth-btn)', color: 'white', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: seedMutation.isPending ? 0.7 : 1 }}
+          >
+            {t('categories.seedDefaults')}
+          </motion.button>
         </motion.div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

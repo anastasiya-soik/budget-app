@@ -28,6 +28,20 @@ async def create_defaults(user_id: uuid.UUID, db: AsyncSession) -> None:
         db.add(Category(user_id=user_id, name=cat["name"], color=cat["color"], type=cat["type"]))
 
 
+async def seed_defaults(user_id: uuid.UUID, db: AsyncSession) -> list[Category]:
+    count_result = await db.execute(
+        select(func.count()).select_from(Category).where(Category.user_id == user_id)
+    )
+    if count_result.scalar_one() > 0:
+        return []
+    await create_defaults(user_id, db)
+    await db.commit()
+    result = await db.execute(
+        select(Category).where(Category.user_id == user_id).order_by(Category.created_at)
+    )
+    return list(result.scalars().all())
+
+
 async def get_all(user_id: uuid.UUID, db: AsyncSession) -> list[Category]:
     result = await db.execute(
         select(Category)
