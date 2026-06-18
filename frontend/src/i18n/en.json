@@ -16,7 +16,9 @@
     "monthlyTrend": "6-Month Trend",
     "noTrendData": "No trend data yet",
     "addIncome": "Income",
-    "addExpense": "Expense"
+    "addExpense": "Expense",
+    "savingsRate": "Saved {{rate}}% of income",
+    "avgExpense": "Avg. expense: {{amount}} / mo"
   },
   "transactions": {
     "title": "Transactions",

@@ -96,10 +96,24 @@ const Budget = () => {
   const { user } = useAuthStore()
   const { t } = useTranslation()
   const currency = user?.currency || 'USD'
-  const month = currentMonth()
+  const [month, setMonth] = useState(currentMonth())
 
   const [modal, setModal] = useState(null)
   const queryClient = useQueryClient()
+
+  const handlePrevMonth = () => {
+    const [year, m] = month.split('-').map(Number)
+    const date = new Date(year, m - 2, 1)
+    date.setMonth(date.getMonth() - 1)
+    setMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`)
+  }
+
+  const handleNextMonth = () => {
+    const [year, m] = month.split('-').map(Number)
+    const date = new Date(year, m - 1, 1)
+    date.setMonth(date.getMonth() + 1)
+    setMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`)
+  }
 
   const { data: bars = [], isLoading: barsLoading } = useQuery({
     queryKey: ['budget-bars', month],
@@ -119,8 +133,8 @@ const Budget = () => {
   const deleteMutation = useMutation({
     mutationFn: (id) => budgetsApi.remove(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] })
-      queryClient.invalidateQueries({ queryKey: ['budget-bars'] })
+      queryClient.invalidateQueries({ queryKey: ['budgets', month] })
+      queryClient.invalidateQueries({ queryKey: ['budget-bars', month] })
     },
   })
 
@@ -129,9 +143,13 @@ const Budget = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{t('budget.title')}</h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{month}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button onClick={handlePrevMonth} style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '16px', padding: 0 }}>←</button>
+          <div>
+            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{t('budget.title')}</h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{month}</p>
+          </div>
+          <button onClick={handleNextMonth} style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '16px', padding: 0 }}>→</button>
         </div>
         <motion.div whileTap={{ scale: 0.96 }} onClick={() => setModal({ existing: null })}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 500, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}

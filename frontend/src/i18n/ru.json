@@ -16,7 +16,9 @@
     "monthlyTrend": "Тренд за 6 месяцев",
     "noTrendData": "Данных пока нет",
     "addIncome": "Доход",
-    "addExpense": "Расход"
+    "addExpense": "Расход",
+    "savingsRate": "Сохранено {{rate}}% дохода",
+    "avgExpense": "Ср. расходы: {{amount}} / мес"
   },
   "transactions": {
     "title": "Транзакции",
