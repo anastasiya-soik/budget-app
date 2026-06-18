@@ -20,6 +20,7 @@ from app.models.audit_log import AuditLog
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.services import telegram_service
+from app.services.category_service import create_defaults
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +226,7 @@ async def telegram_login(
         user = User(telegram_id=telegram_id)
         db.add(user)
         await db.flush()
+        await create_defaults(user.id, db)
 
     access_token, raw_token = await _issue_tokens(user, db)
     await _write_audit(db, "telegram_login", str(user.id), request)
@@ -273,6 +275,7 @@ async def register(
     db.add(user)
     await db.flush()  # populate user.id before creating dependent rows
 
+    await create_defaults(user.id, db)
     access_token, raw_token = await _issue_tokens(user, db)
     await _write_audit(db, "register", str(user.id), request)
 

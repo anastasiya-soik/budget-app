@@ -49,6 +49,7 @@
     "saving": "Saving…",
     "fillRequired": "Fill in amount and date",
     "selectCategory": "Please select a category",
+    "newCategory": "New",
     "noCategoriesHint": "No categories yet — create them in the Categories tab",
     "importTitle1": "Import CSV — file",
     "importTitle2": "Import CSV — columns",

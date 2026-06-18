@@ -49,6 +49,7 @@
     "saving": "Сохранение…",
     "fillRequired": "Заполните сумму и дату",
     "selectCategory": "Выберите категорию",
+    "newCategory": "Новая",
     "noCategoriesHint": "Категорий пока нет — создай их в разделе «Категории»",
     "importTitle1": "Импорт CSV — файл",
     "importTitle2": "Импорт CSV — колонки",

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis,
 } from 'recharts'
 import analyticsApi from '../api/analytics'
 import useAuthStore from '../store/authStore'
@@ -141,13 +141,18 @@ const Overview = ({ onQuickAdd }) => {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={pieItems} dataKey="total_cents" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                <Pie
+                  data={pieItems} dataKey="total_cents" nameKey="name"
+                  cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
+                  label={({ percent }) => percent > 0.06 ? `${(percent * 100).toFixed(0)}%` : ''}
+                  labelLine={false}
+                >
                   {pieItems.map((entry, i) => (
                     <Cell key={entry.category_id || i} fill={entry.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v) => [formatMoney(v, currency), '']} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-                <Legend formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
+                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{v}</span>} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -163,15 +168,14 @@ const Overview = ({ onQuickAdd }) => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={trendItems} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-card)" />
+              <BarChart data={trendItems} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} barGap={2} barCategoryGap="30%">
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={(v) => formatMoney(v, currency).replace(/\.00$/, '')} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={70} />
                 <Tooltip formatter={(v, name) => [formatMoney(v, currency), name]} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-                <Legend formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
-                <Line type="monotone" dataKey="Income" stroke="#64A0FF" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                <Line type="monotone" dataKey="Expense" stroke="#E52B50" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-              </LineChart>
+                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
+                <Bar dataKey="Income" fill="#64A0FF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Expense" fill="#E52B50" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           )}
         </motion.div>

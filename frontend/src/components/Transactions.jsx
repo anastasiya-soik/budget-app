@@ -250,8 +250,11 @@ const RecurringModal = ({ onClose, onSuccess }) => {
   )
 }
 
+const CAT_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#10b981', '#E8A020', '#2060D0', '#059669', '#F97316']
+
 const TransactionModal = ({ transaction, categories, onSave, onClose, loading, error, initialType }) => {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const defaultCat = transaction?.category_id
     || (initialType ? (categories.find((c) => c.type === initialType)?.id || '') : '')
   const [amount, setAmount] = useState(transaction ? (transaction.amount_cents / 100).toFixed(2) : '')
@@ -259,6 +262,28 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
   const [txDate, setTxDate] = useState(transaction?.tx_date || today())
   const [note, setNote] = useState(transaction?.note || '')
   const [localError, setLocalError] = useState('')
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatType, setNewCatType] = useState(initialType || 'expense')
+  const [newCatColor, setNewCatColor] = useState(CAT_COLORS[0])
+  const [newCatError, setNewCatError] = useState('')
+
+  const createCatMutation = useMutation({
+    mutationFn: (data) => categoriesApi.create(data),
+    onSuccess: (newCat) => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      setCategoryId(newCat.id)
+      setShowNewCat(false)
+      setNewCatName('')
+      setNewCatError('')
+    },
+    onError: (err) => setNewCatError(apiError(err)),
+  })
+
+  const handleCreateCat = () => {
+    if (!newCatName.trim()) { setNewCatError(t('categories.nameRequired')); return }
+    createCatMutation.mutate({ name: newCatName.trim(), color: newCatColor, type: newCatType })
+  }
 
   const handleSave = () => {
     const amountCents = Math.round(parseFloat(amount) * 100)
@@ -295,8 +320,40 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>{t('transactions.category')}</label>
-            {categories.length === 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{t('transactions.category')}</label>
+              {!showNewCat && (
+                <button onClick={() => setShowNewCat(true)} style={{ fontSize: '12px', color: 'var(--amaranth)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
+                  + {t('transactions.newCategory')}
+                </button>
+              )}
+            </div>
+            {showNewCat ? (
+              <div style={{ background: 'var(--bg)', borderRadius: '10px', padding: '12px', border: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder={t('categories.namePlaceholder')} style={inputStyle} autoFocus maxLength={50} />
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['expense', 'income'].map(tp => (
+                    <button key={tp} onClick={() => setNewCatType(tp)} style={{ flex: 1, padding: '6px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none', background: newCatType === tp ? (tp === 'expense' ? 'rgba(229,43,80,0.12)' : 'rgba(16,185,129,0.12)') : 'var(--surface)', color: newCatType === tp ? (tp === 'expense' ? '#E52B50' : '#059669') : 'var(--text-muted)' }}>
+                      {tp === 'expense' ? t('transactions.expense') : t('transactions.income')}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {CAT_COLORS.map(c => (
+                    <div key={c} onClick={() => setNewCatColor(c)} style={{ width: '24px', height: '24px', borderRadius: '50%', background: c, cursor: 'pointer', outline: newCatColor === c ? `3px solid ${c}` : 'none', outlineOffset: '2px', flexShrink: 0 }} />
+                  ))}
+                </div>
+                {newCatError && <p style={{ fontSize: '12px', color: '#E52B50', margin: 0 }}>{newCatError}</p>}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => { setShowNewCat(false); setNewCatName(''); setNewCatError('') }} style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '13px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                    {t('transactions.cancel')}
+                  </button>
+                  <button onClick={handleCreateCat} disabled={createCatMutation.isPending} style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: 'none', background: 'var(--amaranth-btn)', color: 'white', cursor: 'pointer', opacity: createCatMutation.isPending ? 0.7 : 1 }}>
+                    {createCatMutation.isPending ? '…' : t('transactions.save')}
+                  </button>
+                </div>
+              </div>
+            ) : categories.length === 0 ? (
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', background: 'var(--bg)', border: '1px solid var(--border-card)', borderRadius: '10px', padding: '10px 14px' }}>
                 {t('transactions.noCategoriesHint')}
               </div>
