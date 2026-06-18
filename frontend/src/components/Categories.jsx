@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -140,6 +140,12 @@ const Categories = () => {
   const seedMutation = useMutation({ mutationFn: categoriesApi.seedDefaults, onSuccess: invalidate })
   const updateMutation = useMutation({ mutationFn: ({ id, data }) => categoriesApi.update(id, data), onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
   const deleteMutation = useMutation({ mutationFn: categoriesApi.remove, onSuccess: invalidate })
+
+  useEffect(() => {
+    if (!isLoading && categories.length === 0 && !seedMutation.isPending) {
+      seedMutation.mutate()
+    }
+  }, [isLoading, categories.length, seedMutation.isPending])
 
   const handleSave = (formData) => {
     if (modal?.category) updateMutation.mutate({ id: modal.category.id, data: formData })
