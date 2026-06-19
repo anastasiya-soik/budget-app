@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 
@@ -6,7 +8,7 @@ class FeedbackCreate(BaseModel):
 
 
 class FeedbackOut(BaseModel):
-    id: str
+    id: uuid.UUID
     message: str
 
     model_config = {"from_attributes": True}
