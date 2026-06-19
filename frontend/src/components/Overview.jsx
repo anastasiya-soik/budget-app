@@ -11,8 +11,6 @@ import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth } from '../utils'
 
 const FALLBACK_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981', '#2060D0']
-const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay: i * 0.08 } }),
@@ -20,7 +18,7 @@ const cardVariants = {
 
 const Overview = ({ onQuickAdd }) => {
   const { user } = useAuthStore()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const currency = user?.currency || 'USD'
   const month = currentMonth()
   const [trendPeriod, setTrendPeriod] = useState(6)
@@ -40,10 +38,13 @@ const Overview = ({ onQuickAdd }) => {
     queryFn: () => analyticsApi.trend(trendPeriod),
   })
 
+  const incomeLabel = t('overview.income')
+  const expenseLabel = t('overview.expenses')
+
   const trendItems = (trendData?.items || []).map((item) => ({
     month: item.month,
-    Income: item.income_cents,
-    Expense: item.expense_cents,
+    [incomeLabel]: item.income_cents,
+    [expenseLabel]: item.expense_cents,
   }))
 
   const pieItems = catData?.items || []
@@ -72,7 +73,7 @@ const Overview = ({ onQuickAdd }) => {
         <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-50px', left: '35%', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '6px', marginTop: 0 }}>
-          {t('overview.balance')} · {EN_MONTHS[new Date().getMonth()]} {new Date().getFullYear()}
+          {t('overview.balance')} · {new Date().toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}
         </p>
         <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {formatMoney(balanceCents, currency)}
@@ -164,7 +165,7 @@ const Overview = ({ onQuickAdd }) => {
           style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '20px' }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.monthlyTrend')}</h3>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.monthlyTrend', { n: trendPeriod })}</h3>
             <div style={{ display: 'flex', gap: '6px' }}>
               {[
                 { label: '1M', months: 1 },
@@ -201,8 +202,8 @@ const Overview = ({ onQuickAdd }) => {
                 <YAxis tickFormatter={(v) => formatMoney(v, currency).replace(/\.00$/, '')} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={70} />
                 <Tooltip formatter={(v, name) => [formatMoney(v, currency), name]} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
                 <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
-                <Bar dataKey="Income" fill="#64A0FF" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Expense" fill="#E52B50" radius={[4, 4, 0, 0]} />
+                <Bar dataKey={incomeLabel} fill="#64A0FF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey={expenseLabel} fill="#E52B50" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

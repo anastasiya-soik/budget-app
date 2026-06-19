@@ -13,7 +13,7 @@
     "expenses": "Expenses",
     "spendingByCategory": "Spending by Category",
     "noExpenseData": "No expense data this month",
-    "monthlyTrend": "6-Month Trend",
+    "monthlyTrend": "{{n}}-Month Trend",
     "noTrendData": "No trend data yet",
     "addIncome": "Income",
     "addExpense": "Expense",
@@ -31,6 +31,7 @@
     "allTypes": "All types",
     "expense": "Expense",
     "income": "Income",
+    "uncategorized": "Uncategorized",
     "noFound": "No transactions found",
     "noFoundHint": "Try adjusting your filters or add a transaction",
     "search": "Search notes",
@@ -193,5 +194,15 @@
     "telegramError": "Sign in failed",
     "telegramErrorHint": "Try again or sign in with email",
     "telegramRetry": "Retry"
+  },
+  "feedback": {
+    "button": "Feedback",
+    "title": "Send Feedback",
+    "placeholder": "Tell us what you think...",
+    "required": "Please enter some feedback",
+    "tooShort": "Feedback must be at least 3 characters",
+    "cancel": "Cancel",
+    "send": "Send",
+    "sending": "Sending…"
   }
 }

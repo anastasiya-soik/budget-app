@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import budgetsApi from '../api/budgets'
+import { useScrollLock } from '../hooks/useScrollLock'
 import categoriesApi from '../api/categories'
 import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth, apiError } from '../utils'
@@ -13,6 +14,7 @@ const cardVariants = {
 }
 
 const BudgetModal = ({ categories, month, existing, onClose }) => {
+  useScrollLock()
   const { t } = useTranslation()
   const { user } = useAuthStore()
   const currency = user?.currency || 'USD'
