@@ -11,6 +11,19 @@ import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth } from '../utils'
 
 const FALLBACK_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981', '#2060D0']
+
+const RADIAN = Math.PI / 180
+const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+  if (percent < 0.07) return null
+  const r = innerRadius + (outerRadius - innerRadius) * 0.55
+  const x = cx + r * Math.cos(-midAngle * RADIAN)
+  const y = cy + r * Math.sin(-midAngle * RADIAN)
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600} style={{ pointerEvents: 'none' }}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  )
+}
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay: i * 0.08 } }),
@@ -147,7 +160,7 @@ const Overview = ({ onQuickAdd }) => {
                 <Pie
                   data={pieItems} dataKey="total_cents" nameKey="name"
                   cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
-                  label={({ percent }) => percent > 0.06 ? `${(percent * 100).toFixed(0)}%` : ''}
+                  label={renderPieLabel}
                   labelLine={false}
                 >
                   {pieItems.map((entry, i) => (
