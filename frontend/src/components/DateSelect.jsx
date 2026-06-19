@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 
-const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
 const YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i)
 
 function daysInMonth(year, month) {
