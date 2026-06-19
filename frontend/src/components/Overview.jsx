@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis,
 } from 'recharts'
 import analyticsApi from '../api/analytics'
 import useAuthStore from '../store/authStore'
@@ -18,9 +19,10 @@ const cardVariants = {
 
 const Overview = ({ onQuickAdd }) => {
   const { user } = useAuthStore()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const currency = user?.currency || 'USD'
   const month = currentMonth()
+  const [trendPeriod, setTrendPeriod] = useState(6)
 
   const { data: summary, isLoading: sumLoading } = useQuery({
     queryKey: ['analytics', 'summary', month],
@@ -33,14 +35,17 @@ const Overview = ({ onQuickAdd }) => {
   })
 
   const { data: trendData, isLoading: trendLoading } = useQuery({
-    queryKey: ['analytics', 'trend'],
-    queryFn: () => analyticsApi.trend(6),
+    queryKey: ['analytics', 'trend', trendPeriod],
+    queryFn: () => analyticsApi.trend(trendPeriod),
   })
+
+  const incomeLabel = t('overview.income')
+  const expenseLabel = t('overview.expenses')
 
   const trendItems = (trendData?.items || []).map((item) => ({
     month: item.month,
-    Income: item.income_cents,
-    Expense: item.expense_cents,
+    [incomeLabel]: item.income_cents,
+    [expenseLabel]: item.expense_cents,
   }))
 
   const pieItems = catData?.items || []
@@ -55,6 +60,14 @@ const Overview = ({ onQuickAdd }) => {
   }
 
   const balanceCents = summary?.balance_cents ?? 0
+  const locale = i18n.language === 'ru' ? 'ru-RU' : 'en-US'
+  const monthLabel = new Date().toLocaleString(locale, { month: 'long', year: 'numeric' })
+
+  const periodButtons = [
+    { label: '1M', months: 1 },
+    { label: '6M', months: 6 },
+    { label: '1Y', months: 12 },
+  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -69,9 +82,9 @@ const Overview = ({ onQuickAdd }) => {
         <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-50px', left: '35%', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '6px', marginTop: 0 }}>
-          {t('overview.balance')} · {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+          {t('overview.balance')} · {monthLabel}
         </p>
-        <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0 }}>
+        <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {formatMoney(balanceCents, currency)}
         </p>
         {summary?.income_cents > 0 && (
@@ -86,12 +99,12 @@ const Overview = ({ onQuickAdd }) => {
         <motion.button whileTap={{ scale: 0.97 }} onClick={() => onQuickAdd?.('income')}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '14px', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.25)', background: 'rgba(16,185,129,0.08)', color: '#059669', fontSize: '14px', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
         >
-          <span style={{ fontSize: '18px', lineHeight: 1 }}>↑</span> {t('overview.addIncome')}
+          <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 700 }}>+</span> {t('overview.addIncome')}
         </motion.button>
         <motion.button whileTap={{ scale: 0.97 }} onClick={() => onQuickAdd?.('expense')}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '14px', borderRadius: '12px', border: '1px solid rgba(229,43,80,0.25)', background: 'rgba(229,43,80,0.08)', color: 'var(--icon-a-color)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
         >
-          <span style={{ fontSize: '18px', lineHeight: 1 }}>↓</span> {t('overview.addExpense')}
+          <span style={{ fontSize: '16px', lineHeight: 1, fontWeight: 700 }}>+</span> {t('overview.addExpense')}
         </motion.button>
       </div>
 
@@ -106,7 +119,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.income')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0 }}>{formatMoney(summary?.income_cents ?? 0, currency)}</p>
+          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.income_cents ?? 0, currency)}</p>
         </motion.div>
 
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible"
@@ -118,7 +131,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.expenses')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0 }}>{formatMoney(summary?.expense_cents ?? 0, currency)}</p>
+          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.expense_cents ?? 0, currency)}</p>
           {trendData?.items?.length >= 2 && (() => {
             const slice = trendData.items.slice(-3)
             const avg = Math.round(slice.reduce((s, i) => s + i.expense_cents, 0) / slice.length)
@@ -140,13 +153,18 @@ const Overview = ({ onQuickAdd }) => {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={pieItems} dataKey="total_cents" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                <Pie
+                  data={pieItems} dataKey="total_cents" nameKey="name"
+                  cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
+                  label={({ percent }) => percent > 0.06 ? `${(percent * 100).toFixed(0)}%` : ''}
+                  labelLine={false}
+                >
                   {pieItems.map((entry, i) => (
                     <Cell key={entry.category_id || i} fill={entry.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v) => [formatMoney(v, currency), '']} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-                <Legend formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
+                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{v}</span>} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -155,22 +173,43 @@ const Overview = ({ onQuickAdd }) => {
         <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible"
           style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '20px' }}
         >
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', marginTop: 0 }}>{t('overview.monthlyTrend')}</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.monthlyTrend', { n: trendPeriod })}</h3>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {periodButtons.map(({ label, months }) => (
+                <button
+                  key={label}
+                  onClick={() => setTrendPeriod(months)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: trendPeriod === months ? 'var(--amaranth-btn)' : 'var(--bg)',
+                    color: trendPeriod === months ? 'white' : 'var(--text-muted)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {trendItems.length === 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', fontSize: '13px', color: 'var(--text-muted)' }}>
               {t('overview.noTrendData')}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={trendItems} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-card)" />
+              <BarChart data={trendItems} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} barGap={2} barCategoryGap="30%">
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={(v) => formatMoney(v, currency).replace(/\.00$/, '')} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={70} />
                 <Tooltip formatter={(v, name) => [formatMoney(v, currency), name]} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-                <Legend formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
-                <Line type="monotone" dataKey="Income" stroke="#64A0FF" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                <Line type="monotone" dataKey="Expense" stroke="#E52B50" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-              </LineChart>
+                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
+                <Bar dataKey={incomeLabel} fill="#64A0FF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey={expenseLabel} fill="#E52B50" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           )}
         </motion.div>

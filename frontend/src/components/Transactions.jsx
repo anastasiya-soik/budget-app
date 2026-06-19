@@ -8,12 +8,14 @@ import recurringApi from '../api/recurring'
 import useAuthStore from '../store/authStore'
 import { formatMoney, formatDate, today, firstOfMonth, apiError } from '../utils'
 import { DateSelect } from './DateSelect'
+import { useScrollLock } from '../hooks/useScrollLock'
 
 const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(13,10,16,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }
 const cardStyle = { background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 8px 40px rgba(0,0,0,0.2)', maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto' }
 const inputStyle2 = { width: '100%', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }
 
 const ImportCsvModal = ({ onClose, onSuccess }) => {
+  useScrollLock()
   const { t } = useTranslation()
   const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
@@ -178,6 +180,7 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
 }
 
 const RecurringModal = ({ onClose, onSuccess }) => {
+  useScrollLock()
   const { t } = useTranslation()
   const [amount, setAmount] = useState('')
   const [frequency, setFrequency] = useState('monthly')
@@ -251,6 +254,7 @@ const RecurringModal = ({ onClose, onSuccess }) => {
 }
 
 const TransactionModal = ({ transaction, categories, onSave, onClose, loading, error, initialType }) => {
+  useScrollLock()
   const { t } = useTranslation()
   const defaultCat = transaction?.category_id
     || (initialType ? (categories.find((c) => c.type === initialType)?.id || '') : '')
@@ -493,7 +497,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat?.name || 'Uncategorized'}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat?.name || t('transactions.uncategorized')}</span>
                     {tx.note && <span style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="hidden sm:block">— {tx.note}</span>}
                   </div>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(tx.tx_date)}</span>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import goalsApi from '../api/goals'
+import { useScrollLock } from '../hooks/useScrollLock'
 import useAuthStore from '../store/authStore'
 import { formatMoney, formatDate, today, apiError } from '../utils'
 import { DateSelect } from './DateSelect'
@@ -20,6 +21,7 @@ const cardVariants = {
 }
 
 const GoalModal = ({ goal, onSave, onClose, loading, error }) => {
+  useScrollLock()
   const { t } = useTranslation()
   const [name, setName] = useState(goal?.name || '')
   const [target, setTarget] = useState(goal ? (goal.target_cents / 100).toFixed(2) : '')

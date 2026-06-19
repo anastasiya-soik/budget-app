@@ -4,8 +4,10 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import feedbackApi from '../api/feedback'
 import { apiError } from '../utils'
+import { useScrollLock } from '../hooks/useScrollLock'
 
 const FeedbackModal = ({ onClose }) => {
+  useScrollLock()
   const { t } = useTranslation()
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')

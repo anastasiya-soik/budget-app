@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import categoriesApi from '../api/categories'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { apiError } from '../utils'
 
 const cardVariants = {
@@ -11,6 +12,7 @@ const cardVariants = {
 }
 
 const CategoryModal = ({ category, onSave, onClose, loading, error }) => {
+  useScrollLock()
   const { t } = useTranslation()
   const [name, setName] = useState(category?.name || '')
   const [color, setColor] = useState(category?.color || '#E52B50')
