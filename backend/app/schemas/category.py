@@ -6,13 +6,13 @@ from pydantic import BaseModel, Field
 
 
 class CategoryCreate(BaseModel):
-    name: str = Field(max_length=64)
+    name: str = Field(min_length=1, max_length=64)
     color: str = Field(pattern=r"^#[0-9A-Fa-f]{6}$")
     type: Literal["income", "expense"]
 
 
 class CategoryUpdate(BaseModel):
-    name: str | None = Field(None, max_length=64)
+    name: str | None = Field(None, min_length=1, max_length=64)
     color: str | None = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
     type: Literal["income", "expense"] | None = None
 

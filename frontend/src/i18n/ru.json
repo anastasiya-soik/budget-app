@@ -83,14 +83,16 @@
     "startDate": "Дата начала",
     "nextDate": "след.",
     "pause": "Пауза",
-    "resume": "Возобновить"
+    "resume": "Возобновить",
+    "toastSaved": "Транзакция сохранена",
+    "toastDeleted": "Удалено"
   },
   "goals": {
     "title": "Цели",
     "add": "Добавить цель",
     "noGoals": "Целей пока нет",
     "noGoalsHint": "Создайте цель накопления",
-    "done": "Готово!",
+    "done": "Готово! 🎉",
     "deadline": "Срок",
     "saved": "накоплено",
     "remaining": "осталось",
@@ -105,7 +107,8 @@
     "fillRequired": "Введите название и целевую сумму",
     "cancel": "Отмена",
     "save": "Сохранить",
-    "saving": "Сохранение…"
+    "saving": "Сохранение…",
+    "toastSaved": "Цель сохранена"
   },
   "categories": {
     "title": "Категории",
@@ -125,7 +128,8 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "saving": "Сохранение…",
-    "nameRequired": "Введите название"
+    "nameRequired": "Введите название",
+    "toastSaved": "Категория сохранена"
   },
   "settings": {
     "title": "Настройки",
@@ -168,7 +172,8 @@
     "saveError": "Ошибка сохранения",
     "export": "Экспорт CSV",
     "errorCategory": "Выберите категорию",
-    "errorAmount": "Введите сумму больше 0"
+    "errorAmount": "Введите сумму больше 0",
+    "toastSaved": "Лимит сохранён"
   },
   "onboarding": {
     "title": "Добро пожаловать в purrse!",

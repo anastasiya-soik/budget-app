@@ -44,6 +44,8 @@ body {
   --badge-r-color: #B01A38;
   --badge-b: linear-gradient(135deg, #E0EEFF, #C8DAFF);
   --badge-b-color: #1A50B0;
+  --skeleton-base: #F0E0E8;
+  --skeleton-shine: #FFF8FA;
 }
 
 html.dark {
@@ -71,6 +73,8 @@ html.dark {
   --badge-r-color: #FF6B84;
   --badge-b: rgba(100,160,255,0.15);
   --badge-b-color: #8BBFFF;
+  --skeleton-base: rgba(255,255,255,0.05);
+  --skeleton-shine: rgba(255,255,255,0.12);
 }
 
 /* Prevent iOS Safari zoom on input focus (triggered when font-size < 16px) */
@@ -85,4 +89,16 @@ html.dark input,
 html.dark select,
 html.dark textarea {
   color-scheme: dark;
+}
+
+/* Focus ring for all inputs */
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--amaranth) !important;
+  outline-offset: 1px;
+}
+
+/* Skeleton shimmer keyframe */
+@keyframes shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
 }

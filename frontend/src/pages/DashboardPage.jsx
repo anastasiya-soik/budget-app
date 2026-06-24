@@ -11,6 +11,7 @@ import Budget from '../components/Budget'
 import Categories from '../components/Categories'
 import Settings from '../components/Settings'
 import FeedbackModal from '../components/FeedbackModal'
+import { ToastProvider } from '../hooks/useToast'
 
 const ONBOARDING_KEY = 'purrse-onboarded'
 
@@ -130,6 +131,7 @@ const DashboardPage = () => {
   }
 
   return (
+    <ToastProvider>
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <AnimatePresence>
         {showOnboarding && (
@@ -307,6 +309,7 @@ const DashboardPage = () => {
         })}
       </nav>
     </div>
+    </ToastProvider>
   )
 }
 

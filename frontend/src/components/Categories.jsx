@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import categoriesApi from '../api/categories'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useToast } from '../hooks/useToast'
 import { apiError } from '../utils'
 
 const cardVariants = {
@@ -130,24 +131,27 @@ const CategoryRow = ({ category, onEdit, onDelete }) => {
 
 const Categories = () => {
   const { t } = useTranslation()
+  const showToast = useToast()
   const [modal, setModal] = useState(null)
   const [mutError, setMutError] = useState('')
+  const seededRef = useRef(false)
 
   const { data: categories = [], isLoading } = useQuery({ queryKey: ['categories'], queryFn: categoriesApi.list })
 
   const queryClient = useQueryClient()
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['categories'] })
 
-  const createMutation = useMutation({ mutationFn: categoriesApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
+  const createMutation = useMutation({ mutationFn: categoriesApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast?.(t('categories.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
   const seedMutation = useMutation({ mutationFn: categoriesApi.seedDefaults, onSuccess: invalidate })
-  const updateMutation = useMutation({ mutationFn: ({ id, data }) => categoriesApi.update(id, data), onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
+  const updateMutation = useMutation({ mutationFn: ({ id, data }) => categoriesApi.update(id, data), onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast?.(t('categories.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
   const deleteMutation = useMutation({ mutationFn: categoriesApi.remove, onSuccess: invalidate })
 
   useEffect(() => {
-    if (!isLoading && categories.length === 0 && !seedMutation.isPending) {
+    if (!isLoading && categories.length === 0 && !seededRef.current) {
+      seededRef.current = true
       seedMutation.mutate()
     }
-  }, [isLoading, categories.length, seedMutation.isPending])
+  }, [isLoading, categories.length])
 
   const handleSave = (formData) => {
     if (modal?.category) updateMutation.mutate({ id: modal.category.id, data: formData })

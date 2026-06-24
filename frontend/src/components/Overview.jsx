@@ -9,6 +9,7 @@ import {
 import analyticsApi from '../api/analytics'
 import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth } from '../utils'
+import { SkeletonOverview } from './ui/Skeleton'
 
 const FALLBACK_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981', '#2060D0']
 
@@ -63,12 +64,7 @@ const Overview = ({ onQuickAdd }) => {
   const pieItems = catData?.items || []
 
   if (sumLoading && catLoading && trendLoading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+    return <SkeletonOverview />
   }
 
   const balanceCents = summary?.balance_cents ?? 0

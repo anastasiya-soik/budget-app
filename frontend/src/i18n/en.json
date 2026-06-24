@@ -72,6 +72,8 @@
     "importStats": "{{created}} transactions created, {{skipped}} rows skipped.",
     "close": "Close",
     "confirmDelete": "Delete?",
+    "toastSaved": "Transaction saved",
+    "toastDeleted": "Deleted",
     "recurringTitle": "Recurring transactions",
     "recurringNew": "New recurring transaction",
     "recurringNone": "No recurring transactions yet.",
@@ -90,7 +92,7 @@
     "add": "Add Goal",
     "noGoals": "No goals yet",
     "noGoalsHint": "Set a savings goal to get started",
-    "done": "Done!",
+    "done": "Done! 🎉",
     "deadline": "Deadline",
     "saved": "saved",
     "remaining": "remaining",
@@ -105,7 +107,8 @@
     "fillRequired": "Enter a name and a target amount",
     "cancel": "Cancel",
     "save": "Save",
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "toastSaved": "Goal saved"
   },
   "categories": {
     "title": "Categories",
@@ -114,6 +117,7 @@
     "noCategories": "No categories yet",
     "noCategoriesHint": "Create your first category to start tracking",
     "seedDefaults": "Add default categories",
+    "toastSaved": "Category saved",
     "expense": "Expense",
     "income": "Income",
     "newTitle": "New Category",
@@ -168,7 +172,8 @@
     "saveError": "Failed to save",
     "export": "Export CSV",
     "errorCategory": "Please select a category",
-    "errorAmount": "Enter an amount greater than 0"
+    "errorAmount": "Enter an amount greater than 0",
+    "toastSaved": "Limit saved"
   },
   "onboarding": {
     "title": "Welcome to purrse!",

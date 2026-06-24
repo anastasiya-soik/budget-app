@@ -9,6 +9,8 @@ import useAuthStore from '../store/authStore'
 import { formatMoney, formatDate, today, firstOfMonth, apiError } from '../utils'
 import { DateSelect } from './DateSelect'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { SkeletonTransactions } from './ui/Skeleton'
+import { useToast } from '../hooks/useToast'
 
 const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(13,10,16,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }
 const cardStyle = { background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 8px 40px rgba(0,0,0,0.2)', maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto' }
@@ -402,10 +404,16 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
   )
 }
 
+const rowVariants = {
+  hidden: { opacity: 0, x: -8 },
+  visible: (i) => ({ opacity: 1, x: 0, transition: { duration: 0.22, delay: Math.min(i * 0.04, 0.4) } }),
+}
+
 const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const { user } = useAuthStore()
   const { t } = useTranslation()
   const currency = user?.currency || 'USD'
+  const showToast = useToast()
 
   const [filters, setFilters] = useState({ date_from: firstOfMonth(), date_to: today(), category_id: '', type: '', search: '' })
   const [modal, setModal] = useState(null)
@@ -447,9 +455,9 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const allItems = data?.pages.flatMap((p) => p.items) || []
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['transactions'] })
 
-  const createMutation = useMutation({ mutationFn: transactionsApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
-  const updateMutation = useMutation({ mutationFn: ({ id, data: body }) => transactionsApi.update(id, body), onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
-  const deleteMutation = useMutation({ mutationFn: transactionsApi.remove, onSuccess: invalidate })
+  const createMutation = useMutation({ mutationFn: transactionsApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('transactions.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
+  const updateMutation = useMutation({ mutationFn: ({ id, data: body }) => transactionsApi.update(id, body), onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('transactions.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
+  const deleteMutation = useMutation({ mutationFn: transactionsApi.remove, onSuccess: () => { invalidate(); showToast(t('transactions.toastDeleted')) } })
 
   const handleSave = (formData) => {
     if (modal?.tx) updateMutation.mutate({ id: modal.tx.id, data: formData })
@@ -532,23 +540,32 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
       </div>
 
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <SkeletonTransactions />
       ) : allItems.length === 0 ? (
         <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px' }}>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('transactions.noFound')}</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{t('transactions.noFoundHint')}</p>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>💸</div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('transactions.noFound')}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>{t('transactions.noFoundHint')}</p>
+          <motion.div whileTap={{ scale: 0.97 }} onClick={() => { setMutError(''); setModal({ tx: null }) }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 600, padding: '10px 18px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span style={{ fontSize: '15px', lineHeight: 1 }}>+</span> {t('transactions.add')}
+          </motion.div>
         </div>
       ) : (
         <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', overflow: 'hidden' }}>
+          <AnimatePresence initial={false}>
           {allItems.map((tx, i) => {
             const cat = categoryMap[tx.category_id]
             const isExpense = cat?.type === 'expense'
             return (
-              <div
+              <motion.div
                 key={tx.id}
+                custom={i}
+                variants={rowVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, height: 0, overflow: 'hidden', transition: { duration: 0.2 } }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
                   padding: '12px 16px',
@@ -605,9 +622,10 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
                     </>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )
           })}
+          </AnimatePresence>
 
           {hasNextPage && (
             <div style={{ borderTop: '1px solid var(--tx-border)', padding: '12px 16px', textAlign: 'center' }}>

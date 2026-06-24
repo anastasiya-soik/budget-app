@@ -7,13 +7,15 @@ import { useScrollLock } from '../hooks/useScrollLock'
 import categoriesApi from '../api/categories'
 import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth, apiError } from '../utils'
+import { SkeletonBudget } from './ui/Skeleton'
+import { useToast } from '../hooks/useToast'
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.3, delay: i * 0.06 } }),
 }
 
-const BudgetModal = ({ categories, month, existing, onClose }) => {
+const BudgetModal = ({ categories, month, existing, onClose, onSaved }) => {
   useScrollLock()
   const { t } = useTranslation()
   const { user } = useAuthStore()
@@ -21,7 +23,7 @@ const BudgetModal = ({ categories, month, existing, onClose }) => {
   const queryClient = useQueryClient()
 
   const [categoryId, setCategoryId] = useState(existing?.category_id || '')
-  const [amount, setAmount] = useState(existing ? (existing.limit_cents / 100).toFixed(0) : '')
+  const [amount, setAmount] = useState(existing ? ((existing.limit_cents ?? 0) / 100).toFixed(0) : '')
   const [error, setError] = useState('')
 
   const upsertMutation = useMutation({
@@ -29,6 +31,7 @@ const BudgetModal = ({ categories, month, existing, onClose }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
       queryClient.invalidateQueries({ queryKey: ['budget-bars'] })
+      onSaved?.()
       onClose()
     },
     onError: (err) => setError(apiError(err) || t('budget.saveError')),
@@ -104,6 +107,7 @@ const Budget = () => {
   const { user } = useAuthStore()
   const { t } = useTranslation()
   const currency = user?.currency || 'USD'
+  const showToast = useToast()
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth())
   const [modal, setModal] = useState(null)
@@ -153,19 +157,23 @@ const Budget = () => {
       </div>
 
       {barsLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <SkeletonBudget />
       ) : bars.length === 0 ? (
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible"
           style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px' }}
         >
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('budget.empty')}</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{t('budget.emptyHint')}</p>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>📋</div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('budget.empty')}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>{t('budget.emptyHint')}</p>
+          <motion.div whileTap={{ scale: 0.97 }} onClick={() => setModal({ existing: null })}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 600, padding: '10px 18px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span style={{ fontSize: '15px', lineHeight: 1 }}>+</span> {t('budget.add')}
+          </motion.div>
         </motion.div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <AnimatePresence>
           {bars.map((item, idx) => {
             const isOver = item.pct >= 100
             const isWarning = item.pct >= 80 && !isOver
@@ -174,6 +182,7 @@ const Budget = () => {
 
             return (
               <motion.div key={String(item.category_id)} custom={idx} variants={cardVariants} initial="hidden" animate="visible"
+                exit={{ opacity: 0, height: 0, overflow: 'hidden', transition: { duration: 0.22 } }}
                 style={{
                   background: 'var(--surface)',
                   border: `0.5px solid var(--border-card)`,
@@ -231,6 +240,7 @@ const Budget = () => {
               </motion.div>
             )
           })}
+        </AnimatePresence>
         </div>
       )}
 
@@ -241,6 +251,7 @@ const Budget = () => {
             month={selectedMonth}
             existing={modal.existing}
             onClose={() => setModal(null)}
+            onSaved={() => showToast(t('budget.toastSaved'))}
           />
         )}
       </AnimatePresence>
