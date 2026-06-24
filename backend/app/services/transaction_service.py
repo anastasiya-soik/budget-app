@@ -131,6 +131,11 @@ async def update(
     if amount_cents is not None:
         tx.amount_cents = amount_cents
     if category_id is not None:
+        cat_res = await db.execute(
+            select(Category).where(Category.id == category_id, Category.user_id == user_id)
+        )
+        if cat_res.scalar_one_or_none() is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         tx.category_id = category_id
     if tx_date is not None:
         tx.tx_date = tx_date

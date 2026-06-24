@@ -83,8 +83,10 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
           </div>
         </div>
 
+        <AnimatePresence mode="wait">
         {step === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <motion.div key="step1" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
               {t('transactions.importHint')}
             </p>
@@ -109,11 +111,12 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
                 {loading ? t('transactions.loading') : t('transactions.next')}
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {step === 2 && preview && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <motion.div key="step2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
               {t('transactions.importFound', { count: preview.total_rows })}
             </p>
@@ -160,11 +163,12 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
                 {loading ? t('transactions.importing') : t('transactions.import')}
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {step === 3 && result && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
+          <motion.div key="step3" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '36px' }}>✓</div>
             <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('transactions.importDone')}</p>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
@@ -174,8 +178,9 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
               style={{ borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: 'var(--amaranth-btn)', color: 'white', userSelect: 'none' }}>
               {t('transactions.close')}
             </motion.div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   )

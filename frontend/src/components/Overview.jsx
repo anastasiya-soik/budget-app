@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
@@ -52,6 +52,22 @@ const Overview = ({ onQuickAdd }) => {
     queryFn: () => analyticsApi.trend(trendPeriod),
   })
 
+  const balanceMV = useMotionValue(0)
+  const incomeMV = useMotionValue(0)
+  const expenseMV = useMotionValue(0)
+  const balanceFmt = useTransform(balanceMV, v => formatMoney(Math.round(v), currency))
+  const incomeFmt = useTransform(incomeMV, v => formatMoney(Math.round(v), currency))
+  const expenseFmt = useTransform(expenseMV, v => formatMoney(Math.round(v), currency))
+
+  useEffect(() => {
+    animate(balanceMV, summary?.balance_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
+  }, [summary?.balance_cents])
+
+  useEffect(() => {
+    animate(incomeMV, summary?.income_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
+    animate(expenseMV, summary?.expense_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
+  }, [summary?.income_cents, summary?.expense_cents])
+
   const incomeLabel = t('overview.income')
   const expenseLabel = t('overview.expenses')
 
@@ -84,9 +100,9 @@ const Overview = ({ onQuickAdd }) => {
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '6px', marginTop: 0 }}>
           {t('overview.balance')} · {new Date().toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}
         </p>
-        <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {formatMoney(balanceCents, currency)}
-        </p>
+        <motion.p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {balanceFmt}
+        </motion.p>
         {summary?.income_cents > 0 && (
           <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '12px', margin: '8px 0 0', fontWeight: 500 }}>
             {t('overview.savingsRate', { rate: Math.max(0, Math.round(((summary.income_cents - summary.expense_cents) / summary.income_cents) * 100)) })}
@@ -119,7 +135,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.income')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.income_cents ?? 0, currency)}</p>
+          <motion.p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{incomeFmt}</motion.p>
         </motion.div>
 
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible"
@@ -131,7 +147,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.expenses')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.expense_cents ?? 0, currency)}</p>
+          <motion.p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{expenseFmt}</motion.p>
           {trendData?.items?.length >= 2 && (() => {
             const slice = trendData.items.slice(-3)
             const avg = Math.round(slice.reduce((s, i) => s + i.expense_cents, 0) / slice.length)
