@@ -460,6 +460,16 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const allItems = data?.pages.flatMap((p) => p.items) || []
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['transactions'] })
 
+  const handleImportSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    queryClient.invalidateQueries({ queryKey: ['categories'] })
+    queryClient.invalidateQueries({ queryKey: ['analytics'] })
+    const yearAgo = new Date()
+    yearAgo.setFullYear(yearAgo.getFullYear() - 1)
+    const yearAgoStr = yearAgo.toISOString().slice(0, 10)
+    setFilters({ date_from: yearAgoStr, date_to: today(), category_id: '', type: '', search: '' })
+  }
+
   const createMutation = useMutation({ mutationFn: transactionsApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('transactions.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
   const updateMutation = useMutation({ mutationFn: ({ id, data: body }) => transactionsApi.update(id, body), onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('transactions.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
   const deleteMutation = useMutation({ mutationFn: transactionsApi.remove, onSuccess: () => { invalidate(); showToast(t('transactions.toastDeleted')) } })
@@ -701,7 +711,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
         {showImport && (
           <ImportCsvModal
             onClose={() => setShowImport(false)}
-            onSuccess={invalidate}
+            onSuccess={handleImportSuccess}
           />
         )}
         {showRecurringModal && (
