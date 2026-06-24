@@ -200,6 +200,21 @@ async def bulk_create(
     return len(objs)
 
 
+async def delete_all(
+    user_id: uuid.UUID,
+    db: AsyncSession,
+) -> int:
+    """Hard-delete all transactions for the user. Returns count deleted."""
+    result = await db.execute(
+        select(Transaction).where(Transaction.user_id == user_id)
+    )
+    txs = list(result.scalars().all())
+    for tx in txs:
+        await db.delete(tx)
+    await db.commit()
+    return len(txs)
+
+
 async def soft_delete(
     tx_id: uuid.UUID,
     user_id: uuid.UUID,

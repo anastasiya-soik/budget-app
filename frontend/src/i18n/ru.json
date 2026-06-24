@@ -63,6 +63,7 @@
     "importAmountCol": "Колонка суммы *",
     "importCategoryCol": "Колонка категории",
     "importNoteCol": "Колонка заметки",
+    "importTypeCol": "Колонка типа (income/expense/transfer…)",
     "importSkip": "— пропустить —",
     "back": "← Назад",
     "next": "Далее →",
@@ -85,7 +86,13 @@
     "pause": "Пауза",
     "resume": "Возобновить",
     "toastSaved": "Транзакция сохранена",
-    "toastDeleted": "Удалено"
+    "toastDeleted": "Удалено",
+    "clearAll": "Очистить историю",
+    "clearAllConfirmTitle": "Удалить все транзакции?",
+    "clearAllConfirmHint": "Это действие необратимо. Все транзакции будут удалены.",
+    "clearAllConfirmBtn": "Да, удалить всё",
+    "clearAllCancel": "Отмена",
+    "clearAllDone": "История очищена"
   },
   "goals": {
     "title": "Цели",

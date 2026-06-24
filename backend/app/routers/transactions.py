@@ -22,6 +22,7 @@ from app.schemas.transaction import (
     TransactionUpdate,
 )
 from app.services import budget_service, import_service, transaction_service
+from app.services.category_service import create as create_category
 from app.services.category_service import get_all as get_all_categories
 
 logger = logging.getLogger(__name__)
@@ -96,15 +97,41 @@ async def import_confirm(
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Invalid column mapping")
     categories = await get_all_categories(current_user.id, db)
-    rows, skipped = import_service.parse_csv_rows(
+    rows, skipped, new_cats = import_service.parse_csv_rows(
         content,
         date_col=m.date_col,
         amount_col=m.amount_col,
         category_col=m.category_col,
+        type_col=m.type_col,
         note_col=m.note_col,
         categories=categories,
     )
-    created = await transaction_service.bulk_create(current_user.id, rows, db)
+
+    # Auto-create any categories from CSV that don't exist yet
+    import_colors = [
+        "#E52B50", "#64A0FF", "#AA40FF", "#E8A020", "#10b981",
+        "#2060D0", "#F59E0B", "#8B5CF6", "#EC4899", "#06B6D4",
+    ]
+    color_idx = 0
+    for lname, info in new_cats.items():
+        try:
+            cat = await create_category(
+                user_id=current_user.id,
+                name=info["display_name"],
+                color=import_colors[color_idx % len(import_colors)],
+                type_=info["type"],
+                db=db,
+            )
+            categories.append(cat)
+        except Exception:
+            pass
+        color_idx += 1
+
+    # Build name→id map from updated categories list
+    cat_by_name = {c.name.lower(): c.id for c in categories}
+    resolved_rows = import_service.resolve_category_ids(rows, cat_by_name)
+
+    created = await transaction_service.bulk_create(current_user.id, resolved_rows, db)
     return ImportConfirmOut(created=created, skipped=skipped)
 
 
@@ -188,6 +215,17 @@ async def update_transaction(
         db=db,
     )
     return tx
+
+
+@router.delete("/all")
+@limiter.limit("5/minute")
+async def delete_all_transactions(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    count = await transaction_service.delete_all(user_id=current_user.id, db=db)
+    return {"ok": True, "deleted": count}
 
 
 @router.delete("/{tx_id}")

@@ -22,7 +22,7 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
-  const [mapping, setMapping] = useState({ date_col: 0, amount_col: 1, category_col: null, note_col: null })
+  const [mapping, setMapping] = useState({ date_col: 0, amount_col: 1, category_col: null, type_col: null, note_col: null })
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -124,6 +124,7 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
               { label: t('transactions.importDateCol'), key: 'date_col', required: true },
               { label: t('transactions.importAmountCol'), key: 'amount_col', required: true },
               { label: t('transactions.importCategoryCol'), key: 'category_col', required: false },
+              { label: t('transactions.importTypeCol'), key: 'type_col', required: false },
               { label: t('transactions.importNoteCol'), key: 'note_col', required: false },
             ].map(({ label, key, required }) => (
               <div key={key}>
@@ -426,6 +427,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const [showImport, setShowImport] = useState(false)
   const [showRecurringModal, setShowRecurringModal] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   // Open the add-transaction modal automatically when triggered from Overview quick-add
   useEffect(() => {
@@ -473,6 +475,14 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const createMutation = useMutation({ mutationFn: transactionsApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('transactions.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
   const updateMutation = useMutation({ mutationFn: ({ id, data: body }) => transactionsApi.update(id, body), onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('transactions.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
   const deleteMutation = useMutation({ mutationFn: transactionsApi.remove, onSuccess: () => { invalidate(); showToast(t('transactions.toastDeleted')) } })
+  const clearAllMutation = useMutation({
+    mutationFn: transactionsApi.clearAll,
+    onSuccess: () => {
+      handleImportSuccess()
+      setShowClearConfirm(false)
+      showToast(t('transactions.clearAllDone'))
+    },
+  })
 
   const handleSave = (formData) => {
     if (modal?.tx) updateMutation.mutate({ id: modal.tx.id, data: formData })
@@ -489,6 +499,13 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
         <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('transactions.title')}</h2>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <motion.div whileTap={{ scale: 0.96 }}
+            onClick={() => setShowClearConfirm(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'transparent', border: '0.5px solid rgba(229,43,80,0.3)', color: '#E52B50', fontSize: '13px', fontWeight: 500, padding: '8px 12px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            {t('transactions.clearAll')}
+          </motion.div>
           <motion.div whileTap={{ scale: 0.96 }}
             onClick={() => setShowImport(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--surface)', border: '0.5px solid var(--border-card)', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, padding: '8px 12px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
@@ -707,6 +724,29 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
             onSave={handleSave} onClose={() => setModal(null)}
             loading={isMutating} error={mutError} initialType={modal.type}
           />
+        )}
+        {showClearConfirm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={overlayStyle} onClick={() => setShowClearConfirm(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.18 }}
+              style={{ ...cardStyle, maxWidth: '360px', textAlign: 'center' }}
+              onClick={(e) => e.stopPropagation()}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🗑️</div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{t('transactions.clearAllConfirmTitle')}</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 20px' }}>{t('transactions.clearAllConfirmHint')}</p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <motion.div whileTap={{ scale: 0.97 }} onClick={() => setShowClearConfirm(false)}
+                  style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-card)', color: 'var(--text-primary)', background: 'var(--surface)', userSelect: 'none' }}>
+                  {t('transactions.clearAllCancel')}
+                </motion.div>
+                <motion.div whileTap={{ scale: 0.97 }} onClick={() => clearAllMutation.mutate()}
+                  style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: clearAllMutation.isPending ? 'not-allowed' : 'pointer', background: '#E52B50', color: 'white', opacity: clearAllMutation.isPending ? 0.7 : 1, userSelect: 'none' }}>
+                  {clearAllMutation.isPending ? '…' : t('transactions.clearAllConfirmBtn')}
+                </motion.div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
         {showImport && (
           <ImportCsvModal

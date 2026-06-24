@@ -24,6 +24,11 @@ const transactionsApi = {
     return data
   },
 
+  clearAll: async () => {
+    const { data } = await client.delete('/transactions/all')
+    return data
+  },
+
   importPreview: (file) => {
     const fd = new FormData()
     fd.append('file', file)
