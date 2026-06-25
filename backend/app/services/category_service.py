@@ -11,6 +11,36 @@ logger = logging.getLogger(__name__)
 
 MAX_CATEGORIES_PER_USER = 50
 
+DEFAULT_CATEGORIES = [
+    {"name": "Food", "color": "#E52B50", "type": "expense"},
+    {"name": "Transport", "color": "#64A0FF", "type": "expense"},
+    {"name": "Housing", "color": "#AA40FF", "type": "expense"},
+    {"name": "Health", "color": "#10b981", "type": "expense"},
+    {"name": "Entertainment", "color": "#E8A020", "type": "expense"},
+    {"name": "Shopping", "color": "#2060D0", "type": "expense"},
+    {"name": "Salary", "color": "#059669", "type": "income"},
+    {"name": "Freelance", "color": "#0891B2", "type": "income"},
+]
+
+
+async def create_defaults(user_id: uuid.UUID, db: AsyncSession) -> None:
+    for cat in DEFAULT_CATEGORIES:
+        db.add(Category(user_id=user_id, name=cat["name"], color=cat["color"], type=cat["type"]))
+
+
+async def seed_defaults(user_id: uuid.UUID, db: AsyncSession) -> list[Category]:
+    count_result = await db.execute(
+        select(func.count()).select_from(Category).where(Category.user_id == user_id)
+    )
+    if count_result.scalar_one() > 0:
+        return []
+    await create_defaults(user_id, db)
+    await db.commit()
+    result = await db.execute(
+        select(Category).where(Category.user_id == user_id).order_by(Category.created_at)
+    )
+    return list(result.scalars().all())
+
 
 async def get_all(user_id: uuid.UUID, db: AsyncSession) -> list[Category]:
     result = await db.execute(

@@ -1,17 +1,32 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis,
 } from 'recharts'
 import analyticsApi from '../api/analytics'
+import authApi from '../api/auth'
 import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth } from '../utils'
+import { SkeletonOverview } from './ui/Skeleton'
+import { useToast } from '../hooks/useToast'
 
 const FALLBACK_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981', '#2060D0']
 
+const RADIAN = Math.PI / 180
+const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+  if (percent < 0.07) return null
+  const r = innerRadius + (outerRadius - innerRadius) * 0.55
+  const x = cx + r * Math.cos(-midAngle * RADIAN)
+  const y = cy + r * Math.sin(-midAngle * RADIAN)
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600} style={{ pointerEvents: 'none' }}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  )
+}
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay: i * 0.08 } }),
@@ -20,9 +35,13 @@ const cardVariants = {
 const Overview = ({ onQuickAdd }) => {
   const { user } = useAuthStore()
   const { t, i18n } = useTranslation()
+  const showToast = useToast()
   const currency = user?.currency || 'USD'
   const month = currentMonth()
   const [trendPeriod, setTrendPeriod] = useState(6)
+  const [editingBalance, setEditingBalance] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const queryClient = useQueryClient()
 
   const { data: summary, isLoading: sumLoading } = useQuery({
     queryKey: ['analytics', 'summary', month],
@@ -39,6 +58,36 @@ const Overview = ({ onQuickAdd }) => {
     queryFn: () => analyticsApi.trend(trendPeriod),
   })
 
+  const { data: rtData } = useQuery({
+    queryKey: ['analytics', 'running-total'],
+    queryFn: () => analyticsApi.runningTotal(),
+  })
+
+  const saveBalanceMutation = useMutation({
+    mutationFn: (cents) => authApi.updateMe({ opening_balance_cents: cents }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'running-total'] })
+      setEditingBalance(false)
+      showToast(t('overview.openingBalanceSaved'))
+    },
+  })
+
+  const runningTotalMV = useMotionValue(0)
+  const incomeMV = useMotionValue(0)
+  const expenseMV = useMotionValue(0)
+  const runningTotalFmt = useTransform(runningTotalMV, v => formatMoney(Math.round(v), currency))
+  const incomeFmt = useTransform(incomeMV, v => formatMoney(Math.round(v), currency))
+  const expenseFmt = useTransform(expenseMV, v => formatMoney(Math.round(v), currency))
+
+  useEffect(() => {
+    animate(runningTotalMV, rtData?.running_total_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
+  }, [rtData?.running_total_cents])
+
+  useEffect(() => {
+    animate(incomeMV, summary?.income_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
+    animate(expenseMV, summary?.expense_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
+  }, [summary?.income_cents, summary?.expense_cents])
+
   const incomeLabel = t('overview.income')
   const expenseLabel = t('overview.expenses')
 
@@ -51,27 +100,14 @@ const Overview = ({ onQuickAdd }) => {
   const pieItems = catData?.items || []
 
   if (sumLoading && catLoading && trendLoading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0' }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+    return <SkeletonOverview />
   }
 
-  const balanceCents = summary?.balance_cents ?? 0
-  const locale = i18n.language === 'ru' ? 'ru-RU' : 'en-US'
-  const monthLabel = new Date().toLocaleString(locale, { month: 'long', year: 'numeric' })
-
-  const periodButtons = [
-    { label: '1M', months: 1 },
-    { label: '6M', months: 6 },
-    { label: '1Y', months: 12 },
-  ]
+  const monthLabel = new Date().toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long' })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Hero balance card */}
+      {/* Hero running total card */}
       <motion.div
         custom={0} variants={cardVariants} initial="hidden" animate="visible"
         style={{
@@ -82,16 +118,54 @@ const Overview = ({ onQuickAdd }) => {
         <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-50px', left: '35%', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '6px', marginTop: 0 }}>
-          {t('overview.balance')} · {monthLabel}
+          {t('overview.runningTotal')}
         </p>
-        <p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {formatMoney(balanceCents, currency)}
+        <motion.p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {runningTotalFmt}
+        </motion.p>
+
+        {/* Monthly result subtitle */}
+        <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', margin: '8px 0 0', fontWeight: 500 }}>
+          {monthLabel}: +{formatMoney(summary?.income_cents ?? 0, currency)} / −{formatMoney(summary?.expense_cents ?? 0, currency)}
         </p>
-        {summary?.income_cents > 0 && (
-          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '12px', margin: '8px 0 0', fontWeight: 500 }}>
-            {t('overview.savingsRate', { rate: Math.max(0, Math.round(((summary.income_cents - summary.expense_cents) / summary.income_cents) * 100)) })}
+
+        {/* Hint when running total looks wrong due to missing opening balance */}
+        {(rtData?.running_total_cents ?? 0) < 0 && (rtData?.opening_balance_cents ?? 0) === 0 && (
+          <p style={{ color: 'rgba(255,220,100,0.9)', fontSize: '11px', margin: '8px 0 0', fontWeight: 500 }}>
+            💡 {t('overview.openingBalanceHint')}
           </p>
         )}
+
+        {/* Opening balance inline edit */}
+        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {editingBalance ? (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>{t('overview.openingBalance')}:</span>
+              <input
+                type="number"
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') saveBalanceMutation.mutate(Math.round(parseFloat(editValue || '0') * 100))
+                  if (e.key === 'Escape') setEditingBalance(false)
+                }}
+                style={{ width: '100px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '3px 8px', color: 'white', fontSize: '12px', outline: 'none' }}
+                autoFocus
+              />
+              <button onClick={() => saveBalanceMutation.mutate(Math.round(parseFloat(editValue || '0') * 100))}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px', color: 'white', fontSize: '12px', padding: '3px 8px', cursor: 'pointer' }}>✓</button>
+              <button onClick={() => setEditingBalance(false)}
+                style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: '12px', padding: '3px 6px', cursor: 'pointer' }}>✕</button>
+            </>
+          ) : (
+            <button
+              onClick={() => { setEditValue(((rtData?.opening_balance_cents ?? 0) / 100).toFixed(2)); setEditingBalance(true) }}
+              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '11px', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              {t('overview.openingBalance')}: {formatMoney(rtData?.opening_balance_cents ?? 0, currency)} ✏️
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {/* Quick add buttons */}
@@ -119,7 +193,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.income')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.income_cents ?? 0, currency)}</p>
+          <motion.p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{incomeFmt}</motion.p>
         </motion.div>
 
         <motion.div custom={2} variants={cardVariants} initial="hidden" animate="visible"
@@ -131,7 +205,7 @@ const Overview = ({ onQuickAdd }) => {
             </svg>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px', marginTop: 0 }}>{t('overview.expenses')}</p>
-          <p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(summary?.expense_cents ?? 0, currency)}</p>
+          <motion.p style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{expenseFmt}</motion.p>
           {trendData?.items?.length >= 2 && (() => {
             const slice = trendData.items.slice(-3)
             const avg = Math.round(slice.reduce((s, i) => s + i.expense_cents, 0) / slice.length)
@@ -156,7 +230,7 @@ const Overview = ({ onQuickAdd }) => {
                 <Pie
                   data={pieItems} dataKey="total_cents" nameKey="name"
                   cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
-                  label={({ percent }) => percent > 0.06 ? `${(percent * 100).toFixed(0)}%` : ''}
+                  label={renderPieLabel}
                   labelLine={false}
                 >
                   {pieItems.map((entry, i) => (
@@ -176,7 +250,11 @@ const Overview = ({ onQuickAdd }) => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.monthlyTrend', { n: trendPeriod })}</h3>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {periodButtons.map(({ label, months }) => (
+              {[
+                { label: '1M', months: 1 },
+                { label: '6M', months: 6 },
+                { label: '1Y', months: 12 },
+              ].map(({ label, months }) => (
                 <button
                   key={label}
                   onClick={() => setTrendPeriod(months)}

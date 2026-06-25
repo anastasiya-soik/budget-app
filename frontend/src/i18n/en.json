@@ -18,7 +18,12 @@
     "addIncome": "Income",
     "addExpense": "Expense",
     "savingsRate": "Saved {{rate}}% of income",
-    "avgExpense": "Avg. expense: {{amount}} / mo"
+    "avgExpense": "Avg. expense: {{amount}} / mo",
+    "runningTotal": "Current balance",
+    "monthlyResult": "{{month}}: income {{income}}, expenses {{expense}}",
+    "openingBalance": "Opening balance",
+    "openingBalanceSaved": "Balance saved",
+    "openingBalanceHint": "Amount in accounts before you started tracking"
   },
   "transactions": {
     "title": "Transactions",
@@ -48,7 +53,10 @@
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving…",
-    "fillRequired": "Fill in amount, category and date",
+    "fillRequired": "Fill in amount and date",
+    "selectCategory": "Please select a category",
+    "newCategory": "New",
+    "noCategoriesHint": "No categories yet — create them in the Categories tab",
     "importTitle1": "Import CSV — file",
     "importTitle2": "Import CSV — columns",
     "importTitle3": "Import CSV — done",
@@ -59,7 +67,7 @@
     "importDateCol": "Date column *",
     "importAmountCol": "Amount column *",
     "importCategoryCol": "Category column",
-    "importTypeCol": "Type column (income/expense)",
+    "importTypeCol": "Type column (income/expense/transfer…)",
     "importNoteCol": "Note column",
     "importSkip": "— skip —",
     "back": "← Back",
@@ -96,14 +104,16 @@
     "monthly": "Monthly",
     "yearly": "Yearly",
     "startDate": "Start date",
-    "nextDate": "next"
+    "nextDate": "next",
+    "pause": "Pause",
+    "resume": "Resume"
   },
   "goals": {
     "title": "Goals",
     "add": "Add Goal",
     "noGoals": "No goals yet",
     "noGoalsHint": "Set a savings goal to get started",
-    "done": "Done!",
+    "done": "Done! 🎉",
     "deadline": "Deadline",
     "saved": "saved",
     "remaining": "remaining",
@@ -118,7 +128,8 @@
     "fillRequired": "Enter a name and a target amount",
     "cancel": "Cancel",
     "save": "Save",
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "toastSaved": "Goal saved"
   },
   "categories": {
     "title": "Categories",
@@ -126,6 +137,8 @@
     "add": "Add",
     "noCategories": "No categories yet",
     "noCategoriesHint": "Create your first category to start tracking",
+    "seedDefaults": "Add default categories",
+    "toastSaved": "Category saved",
     "expense": "Expense",
     "income": "Income",
     "newTitle": "New Category",
@@ -161,7 +174,11 @@
     "passwordChanged": "Password changed!",
     "updateEmail": "Update Email",
     "newEmail": "New email",
-    "emailUpdated": "Email updated!"
+    "emailUpdated": "Email updated!",
+    "exportData": "Download my data",
+    "deleteAccount": "Delete account",
+    "confirmDelete": "Are you sure? This action is irreversible. All your data will be deleted.",
+    "deleting": "Deleting…"
   },
   "budget": {
     "title": "Budget",
@@ -176,16 +193,8 @@
     "saveError": "Failed to save",
     "export": "Export CSV",
     "errorCategory": "Please select a category",
-    "errorAmount": "Enter an amount greater than 0"
-  },
-  "onboarding": {
-    "title": "Welcome to purrse!",
-    "subtitle": "Your smart personal finance tracker",
-    "step1": "Track income and expenses by category",
-    "step2": "Start by creating your first category",
-    "step3": "Set goals and budgets to stay on track",
-    "cta": "Create first category →",
-    "skip": "Skip for now"
+    "errorAmount": "Enter an amount greater than 0",
+    "toastSaved": "Limit saved"
   },
   "onboarding": {
     "title": "Welcome to purrse!",
@@ -206,7 +215,11 @@
     "passwordPlaceholderNew": "Min 8 characters",
     "emptyFields": "Please enter email and password",
     "signingIn": "Signing in...",
-    "creatingAccount": "Creating account..."
+    "creatingAccount": "Creating account...",
+    "telegramLoading": "Signing in via Telegram…",
+    "telegramError": "Sign in failed",
+    "telegramErrorHint": "Try again or sign in with email",
+    "telegramRetry": "Retry"
   },
   "feedback": {
     "button": "Feedback",

@@ -6,14 +6,16 @@ import budgetsApi from '../api/budgets'
 import { useScrollLock } from '../hooks/useScrollLock'
 import categoriesApi from '../api/categories'
 import useAuthStore from '../store/authStore'
-import { formatMoney, currentMonth } from '../utils'
+import { formatMoney, currentMonth, apiError } from '../utils'
+import { SkeletonBudget } from './ui/Skeleton'
+import { useToast } from '../hooks/useToast'
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.3, delay: i * 0.06 } }),
 }
 
-const BudgetModal = ({ categories, month, existing, onClose }) => {
+const BudgetModal = ({ categories, month, existing, onClose, onSaved }) => {
   useScrollLock()
   const { t } = useTranslation()
   const { user } = useAuthStore()
@@ -21,7 +23,7 @@ const BudgetModal = ({ categories, month, existing, onClose }) => {
   const queryClient = useQueryClient()
 
   const [categoryId, setCategoryId] = useState(existing?.category_id || '')
-  const [amount, setAmount] = useState(existing ? (existing.limit_cents / 100).toFixed(0) : '')
+  const [amount, setAmount] = useState(existing ? ((existing.limit_cents ?? 0) / 100).toFixed(0) : '')
   const [error, setError] = useState('')
 
   const upsertMutation = useMutation({
@@ -29,9 +31,10 @@ const BudgetModal = ({ categories, month, existing, onClose }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
       queryClient.invalidateQueries({ queryKey: ['budget-bars'] })
+      onSaved?.()
       onClose()
     },
-    onError: (err) => setError(err?.response?.data?.detail || t('budget.saveError')),
+    onError: (err) => setError(apiError(err) || t('budget.saveError')),
   })
 
   const expenseCategories = categories.filter((c) => c.type === 'expense')
@@ -94,37 +97,30 @@ const BudgetModal = ({ categories, month, existing, onClose }) => {
   )
 }
 
+const shiftMonth = (m, delta) => {
+  const [y, mo] = m.split('-').map(Number)
+  const d = new Date(y, mo - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
 const Budget = () => {
   const { user } = useAuthStore()
   const { t } = useTranslation()
   const currency = user?.currency || 'USD'
-  const [month, setMonth] = useState(currentMonth())
+  const showToast = useToast()
 
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth())
   const [modal, setModal] = useState(null)
   const queryClient = useQueryClient()
 
-  const handlePrevMonth = () => {
-    const [year, m] = month.split('-').map(Number)
-    const date = new Date(year, m - 2, 1)
-    date.setMonth(date.getMonth() - 1)
-    setMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`)
-  }
-
-  const handleNextMonth = () => {
-    const [year, m] = month.split('-').map(Number)
-    const date = new Date(year, m - 1, 1)
-    date.setMonth(date.getMonth() + 1)
-    setMonth(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`)
-  }
-
   const { data: bars = [], isLoading: barsLoading } = useQuery({
-    queryKey: ['budget-bars', month],
-    queryFn: () => budgetsApi.bars(month),
+    queryKey: ['budget-bars', selectedMonth],
+    queryFn: () => budgetsApi.bars(selectedMonth),
   })
 
   const { data: budgets = [] } = useQuery({
-    queryKey: ['budgets', month],
-    queryFn: () => budgetsApi.list(month),
+    queryKey: ['budgets', selectedMonth],
+    queryFn: () => budgetsApi.list(selectedMonth),
   })
 
   const { data: categories = [] } = useQuery({
@@ -135,8 +131,8 @@ const Budget = () => {
   const deleteMutation = useMutation({
     mutationFn: (id) => budgetsApi.remove(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets', month] })
-      queryClient.invalidateQueries({ queryKey: ['budget-bars', month] })
+      queryClient.invalidateQueries({ queryKey: ['budgets', selectedMonth] })
+      queryClient.invalidateQueries({ queryKey: ['budget-bars', selectedMonth] })
     },
   })
 
@@ -145,13 +141,13 @@ const Budget = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button onClick={handlePrevMonth} style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '16px', padding: 0 }}>←</button>
-          <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{t('budget.title')}</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{month}</p>
+        <div>
+          <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 6px' }}>{t('budget.title')}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button onClick={() => setSelectedMonth(m => shiftMonth(m, -1))} style={{ width: '22px', height: '22px', borderRadius: '6px', border: '1px solid var(--border-card)', background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontSize: '12px' }}>‹</button>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', minWidth: '64px', textAlign: 'center' }}>{selectedMonth}</span>
+            <button onClick={() => setSelectedMonth(m => shiftMonth(m, 1))} disabled={selectedMonth >= currentMonth()} style={{ width: '22px', height: '22px', borderRadius: '6px', border: '1px solid var(--border-card)', background: 'var(--surface)', cursor: selectedMonth >= currentMonth() ? 'not-allowed' : 'pointer', color: selectedMonth >= currentMonth() ? 'var(--text-muted)' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontSize: '12px', opacity: selectedMonth >= currentMonth() ? 0.4 : 1 }}>›</button>
           </div>
-          <button onClick={handleNextMonth} style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '16px', padding: 0 }}>→</button>
         </div>
         <motion.div whileTap={{ scale: 0.96 }} onClick={() => setModal({ existing: null })}
           style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 500, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
@@ -161,19 +157,23 @@ const Budget = () => {
       </div>
 
       {barsLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <SkeletonBudget />
       ) : bars.length === 0 ? (
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible"
           style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px' }}
         >
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('budget.empty')}</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{t('budget.emptyHint')}</p>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>📋</div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('budget.empty')}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>{t('budget.emptyHint')}</p>
+          <motion.div whileTap={{ scale: 0.97 }} onClick={() => setModal({ existing: null })}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 600, padding: '10px 18px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span style={{ fontSize: '15px', lineHeight: 1 }}>+</span> {t('budget.add')}
+          </motion.div>
         </motion.div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <AnimatePresence>
           {bars.map((item, idx) => {
             const isOver = item.pct >= 100
             const isWarning = item.pct >= 80 && !isOver
@@ -182,6 +182,7 @@ const Budget = () => {
 
             return (
               <motion.div key={String(item.category_id)} custom={idx} variants={cardVariants} initial="hidden" animate="visible"
+                exit={{ opacity: 0, height: 0, overflow: 'hidden', transition: { duration: 0.22 } }}
                 style={{
                   background: 'var(--surface)',
                   border: `0.5px solid var(--border-card)`,
@@ -193,7 +194,7 @@ const Budget = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: item.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>{item.name}</span>
                     {isOver && <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 7px', borderRadius: '20px', background: 'rgba(229,43,80,0.1)', color: '#E52B50' }}>{t('budget.over')}</span>}
                     {isWarning && <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 7px', borderRadius: '20px', background: 'rgba(232,160,32,0.12)', color: '#C07010' }}>80%</span>}
                   </div>
@@ -221,9 +222,9 @@ const Budget = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                  <span>{formatMoney(item.actual_cents, currency)} {t('budget.spent')}</span>
-                  <span style={{ fontWeight: 600, color: isOver ? '#E52B50' : 'var(--text-primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', gap: '8px' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatMoney(item.actual_cents, currency)} {t('budget.spent')}</span>
+                  <span style={{ fontWeight: 600, color: isOver ? '#E52B50' : 'var(--text-primary)', flexShrink: 0 }}>
                     {item.pct}% {t('budget.of')} {formatMoney(item.limit_cents, currency)}
                   </span>
                 </div>
@@ -239,6 +240,7 @@ const Budget = () => {
               </motion.div>
             )
           })}
+        </AnimatePresence>
         </div>
       )}
 
@@ -246,9 +248,10 @@ const Budget = () => {
         {modal !== null && (
           <BudgetModal
             categories={categories}
-            month={month}
+            month={selectedMonth}
             existing={modal.existing}
             onClose={() => setModal(null)}
+            onSaved={() => showToast(t('budget.toastSaved'))}
           />
         )}
       </AnimatePresence>

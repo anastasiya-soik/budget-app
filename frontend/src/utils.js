@@ -32,5 +32,9 @@ export const firstOfMonth = () => {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
 }
 
-export const apiError = (err) =>
-  err?.response?.data?.detail || err?.message || 'Something went wrong'
+export const apiError = (err) => {
+  const detail = err?.response?.data?.detail
+  if (Array.isArray(detail)) return detail.map(d => d.msg || String(d)).join('; ')
+  if (detail && typeof detail === 'object') return detail.msg || JSON.stringify(detail)
+  return detail || err?.message || 'Something went wrong'
+}

@@ -31,6 +31,9 @@ async def update_me(user: User, data: UpdateMeRequest, db: AsyncSession) -> User
     if data.currency is not None:
         user.currency = data.currency.upper()
 
+    if data.opening_balance_cents is not None:
+        user.opening_balance_cents = data.opening_balance_cents
+
     user.updated_at = datetime.utcnow()
     db.add(user)
     await db.commit()

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 class TransactionCreate(BaseModel):
     amount_cents: int = Field(gt=0)
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None = None
     tx_date: date
     note: str | None = Field(None, max_length=500)
 

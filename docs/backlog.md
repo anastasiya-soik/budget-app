@@ -94,6 +94,7 @@
 | Frontend deploy | Dockerfile + nginx + railway.toml for frontend service | **Complete** ✅ 2026-06-11 |
 | S-08 DB backups | R2 backups | **Deferred** [-] |
 | Phase 3 | T-08 (CSV import), T-10 (recurring transactions) | **Complete** ✅ 2026-06-12 |
+| UX polish | Mobile bottom nav, quick-add, logo nav, TG avatar, simplified Transactions header | **Complete** ✅ 2026-06-13 |
 
 ---
 
@@ -145,4 +146,6 @@
 - [x] Tech: Frontend Railway deployment (Dockerfile + nginx SPA + railway.toml) — Done 2026-06-11
 - [x] T-08 CSV import — preview endpoint + column mapping + confirm endpoint, 4 tests — Done 2026-06-12
 - [x] T-10 Recurring transactions — CRUD API + APScheduler daily cron + catch-up logic, 6 tests — Done 2026-06-12
-- [x] Telegram Mini App — auto-auth via initData, tg.ready()/expand(), onboarding modal — Done 2026-06-12
+- [x] A-05 Telegram Mini App — auto-auth via initData, tg.ready()/expand(), onboarding modal — Done 2026-06-12
+- [x] UX: mobile bottom navigation bar, quick-add income/expense on Overview — Done 2026-06-13
+- [x] UX: logo click → Overview, avatar shows TG photo → Settings, simplified Transactions header — Done 2026-06-13

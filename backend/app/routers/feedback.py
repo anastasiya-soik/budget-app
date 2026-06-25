@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
@@ -14,17 +14,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
 
-@router.post("", response_model=FeedbackOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=FeedbackOut, status_code=201)
 @limiter.limit("10/minute")
-async def create_feedback(
-    body: FeedbackCreate,
+async def send_feedback(
     request: Request,
+    body: FeedbackCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    feedback = Feedback(user_id=current_user.id, message=body.message)
-    db.add(feedback)
+    fb = Feedback(user_id=current_user.id, message=body.message)
+    db.add(fb)
     await db.commit()
-    await db.refresh(feedback)
-    logger.info(f"Feedback from {current_user.id}: {body.message[:50]}")
-    return feedback
+    await db.refresh(fb)
+    logger.info("Feedback from user %s: %s", current_user.id, body.message)
+    return fb

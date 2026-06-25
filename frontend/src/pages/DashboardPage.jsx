@@ -11,6 +11,7 @@ import Budget from '../components/Budget'
 import Categories from '../components/Categories'
 import Settings from '../components/Settings'
 import FeedbackModal from '../components/FeedbackModal'
+import { ToastProvider } from '../hooks/useToast'
 
 const ONBOARDING_KEY = 'purrse-onboarded'
 
@@ -130,6 +131,7 @@ const DashboardPage = () => {
   }
 
   return (
+    <ToastProvider>
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <AnimatePresence>
         {showOnboarding && (
@@ -244,6 +246,9 @@ const DashboardPage = () => {
               >
                 {i18n.language === 'en' ? 'RU' : 'EN'}
               </button>
+              <button onClick={() => setShowFeedback(true)} style={ghostBtn}>
+                💬
+              </button>
             </div>
             <button onClick={() => setActiveTab('settings')} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, width: '100%', textAlign: 'left' }}>
               <div style={{ width: '30px', height: '30px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg, #E52B50, #64A0FF)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -307,6 +312,7 @@ const DashboardPage = () => {
         })}
       </nav>
     </div>
+    </ToastProvider>
   )
 }
 

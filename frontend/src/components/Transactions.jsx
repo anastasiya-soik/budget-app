@@ -4,12 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import transactionsApi from '../api/transactions'
 import analyticsApi from '../api/analytics'
+import authApi from '../api/auth'
 import categoriesApi from '../api/categories'
 import recurringApi from '../api/recurring'
 import useAuthStore from '../store/authStore'
 import { formatMoney, formatDate, today, firstOfMonth, apiError } from '../utils'
 import { DateSelect } from './DateSelect'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { SkeletonTransactions } from './ui/Skeleton'
 import { useToast } from '../hooks/useToast'
 
 const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(13,10,16,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }
@@ -19,6 +21,8 @@ const inputStyle2 = { width: '100%', borderRadius: '10px', padding: '10px 14px',
 const ImportCsvModal = ({ onClose, onSuccess }) => {
   useScrollLock()
   const { t } = useTranslation()
+  const { user } = useAuthStore()
+  const currency = user?.currency || 'BYN'
   const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -27,6 +31,9 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef()
+  const [openingValue, setOpeningValue] = useState('')
+  const [openingSaved, setOpeningSaved] = useState(false)
+  const [openingLoading, setOpeningLoading] = useState(false)
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0] || null)
@@ -63,6 +70,21 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
     }
   }
 
+  const handleSaveOpening = async () => {
+    const cents = Math.round(parseFloat(openingValue || '0') * 100)
+    if (isNaN(cents)) return
+    setOpeningLoading(true)
+    try {
+      await authApi.updateMe({ opening_balance_cents: cents })
+      setOpeningSaved(true)
+      onSuccess()
+    } catch (e) {
+      // ignore, user can retry
+    } finally {
+      setOpeningLoading(false)
+    }
+  }
+
   const colOptions = (preview?.headers || []).map((h, i) => ({ label: `${i}: ${h}`, value: i }))
 
   return (
@@ -83,8 +105,10 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
           </div>
         </div>
 
+        <AnimatePresence mode="wait">
         {step === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <motion.div key="step1" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
               {t('transactions.importHint')}
             </p>
@@ -109,11 +133,12 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
                 {loading ? t('transactions.loading') : t('transactions.next')}
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {step === 2 && preview && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <motion.div key="step2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
               {t('transactions.importFound', { count: preview.total_rows })}
             </p>
@@ -161,22 +186,56 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
                 {loading ? t('transactions.importing') : t('transactions.import')}
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {step === 3 && result && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
+          <motion.div key="step3" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '36px' }}>✓</div>
             <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('transactions.importDone')}</p>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
               {t('transactions.importStats', { created: result.created, skipped: result.skipped })}
             </p>
+
+            {/* Opening balance prompt */}
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-card)', borderRadius: '12px', padding: '16px', textAlign: 'left' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                💡 {t('transactions.importOpeningTitle')}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+                {t('transactions.importOpeningHint')}
+              </p>
+              {openingSaved ? (
+                <p style={{ fontSize: '13px', color: '#10b981', fontWeight: 600, margin: 0 }}>✓ {t('transactions.importOpeningSaved')}</p>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={openingValue}
+                      onChange={e => setOpeningValue(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleSaveOpening()}
+                      style={{ ...inputStyle2, paddingRight: '44px' }}
+                    />
+                    <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: 'var(--text-muted)', pointerEvents: 'none' }}>{currency}</span>
+                  </div>
+                  <motion.div whileTap={{ scale: 0.97 }} onClick={openingLoading ? undefined : handleSaveOpening}
+                    style={{ borderRadius: '10px', padding: '10px 14px', fontSize: '13px', fontWeight: 600, cursor: openingLoading ? 'not-allowed' : 'pointer', background: 'var(--amaranth-btn)', color: 'white', whiteSpace: 'nowrap', opacity: openingLoading ? 0.7 : 1, userSelect: 'none' }}>
+                    {openingLoading ? '…' : t('transactions.importOpeningSave')}
+                  </motion.div>
+                </div>
+              )}
+            </div>
+
             <motion.div whileTap={{ scale: 0.97 }} onClick={onClose}
-              style={{ borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: 'var(--amaranth-btn)', color: 'white', userSelect: 'none' }}>
+              style={{ borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: openingSaved ? 'var(--amaranth-btn)' : 'var(--surface)', border: openingSaved ? 'none' : '1px solid var(--border-card)', color: openingSaved ? 'white' : 'var(--text-primary)', userSelect: 'none' }}>
               {t('transactions.close')}
             </motion.div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   )
@@ -256,9 +315,12 @@ const RecurringModal = ({ onClose, onSuccess }) => {
   )
 }
 
+const CAT_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#10b981', '#E8A020', '#2060D0', '#059669', '#F97316']
+
 const TransactionModal = ({ transaction, categories, onSave, onClose, loading, error, initialType }) => {
   useScrollLock()
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const defaultCat = transaction?.category_id
     || (initialType ? (categories.find((c) => c.type === initialType)?.id || '') : '')
   const [amount, setAmount] = useState(transaction ? (transaction.amount_cents / 100).toFixed(2) : '')
@@ -266,15 +328,37 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
   const [txDate, setTxDate] = useState(transaction?.tx_date || today())
   const [note, setNote] = useState(transaction?.note || '')
   const [localError, setLocalError] = useState('')
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatType, setNewCatType] = useState(initialType || 'expense')
+  const [newCatColor, setNewCatColor] = useState(CAT_COLORS[0])
+  const [newCatError, setNewCatError] = useState('')
+
+  const createCatMutation = useMutation({
+    mutationFn: (data) => categoriesApi.create(data),
+    onSuccess: (newCat) => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      setCategoryId(newCat.id)
+      setShowNewCat(false)
+      setNewCatName('')
+      setNewCatError('')
+    },
+    onError: (err) => setNewCatError(apiError(err)),
+  })
+
+  const handleCreateCat = () => {
+    if (!newCatName.trim()) { setNewCatError(t('categories.nameRequired')); return }
+    createCatMutation.mutate({ name: newCatName.trim(), color: newCatColor, type: newCatType })
+  }
 
   const handleSave = () => {
     const amountCents = Math.round(parseFloat(amount) * 100)
-    if (!amountCents || amountCents <= 0 || !categoryId || !txDate) {
+    if (!amountCents || amountCents <= 0 || !txDate) {
       setLocalError(t('transactions.fillRequired'))
       return
     }
     setLocalError('')
-    onSave({ amount_cents: amountCents, category_id: categoryId, tx_date: txDate, note: note.trim() || null })
+    onSave({ amount_cents: amountCents, category_id: categoryId || null, tx_date: txDate, note: note.trim() || null })
   }
 
   const inputStyle = { width: '100%', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }
@@ -302,16 +386,54 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '6px' }}>{t('transactions.category')}</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={{ ...inputStyle }}>
-              <option value="">{t('transactions.allCategories')}</option>
-              <optgroup label={t('transactions.expense')}>
-                {categories.filter((c) => c.type === 'expense').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </optgroup>
-              <optgroup label={t('transactions.income')}>
-                {categories.filter((c) => c.type === 'income').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </optgroup>
-            </select>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{t('transactions.category')}</label>
+              {!showNewCat && (
+                <button onClick={() => setShowNewCat(true)} style={{ fontSize: '12px', color: 'var(--amaranth)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
+                  + {t('transactions.newCategory')}
+                </button>
+              )}
+            </div>
+            {showNewCat ? (
+              <div style={{ background: 'var(--bg)', borderRadius: '10px', padding: '12px', border: '1px solid var(--border-card)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder={t('categories.namePlaceholder')} style={inputStyle} autoFocus maxLength={50} />
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['expense', 'income'].map(tp => (
+                    <button key={tp} onClick={() => setNewCatType(tp)} style={{ flex: 1, padding: '6px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: 'none', background: newCatType === tp ? (tp === 'expense' ? 'rgba(229,43,80,0.12)' : 'rgba(16,185,129,0.12)') : 'var(--surface)', color: newCatType === tp ? (tp === 'expense' ? '#E52B50' : '#059669') : 'var(--text-muted)' }}>
+                      {tp === 'expense' ? t('transactions.expense') : t('transactions.income')}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {CAT_COLORS.map(c => (
+                    <div key={c} onClick={() => setNewCatColor(c)} style={{ width: '24px', height: '24px', borderRadius: '50%', background: c, cursor: 'pointer', outline: newCatColor === c ? `3px solid ${c}` : 'none', outlineOffset: '2px', flexShrink: 0 }} />
+                  ))}
+                </div>
+                {newCatError && <p style={{ fontSize: '12px', color: '#E52B50', margin: 0 }}>{newCatError}</p>}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => { setShowNewCat(false); setNewCatName(''); setNewCatError('') }} style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '13px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                    {t('transactions.cancel')}
+                  </button>
+                  <button onClick={handleCreateCat} disabled={createCatMutation.isPending} style={{ flex: 1, padding: '8px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: 'none', background: 'var(--amaranth-btn)', color: 'white', cursor: 'pointer', opacity: createCatMutation.isPending ? 0.7 : 1 }}>
+                    {createCatMutation.isPending ? '…' : t('transactions.save')}
+                  </button>
+                </div>
+              </div>
+            ) : categories.length === 0 ? (
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', background: 'var(--bg)', border: '1px solid var(--border-card)', borderRadius: '10px', padding: '10px 14px' }}>
+                {t('transactions.noCategoriesHint')}
+              </div>
+            ) : (
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={{ ...inputStyle }}>
+                <option value="">{t('transactions.allCategories')}</option>
+                <optgroup label={t('transactions.expense')}>
+                  {categories.filter((c) => c.type === 'expense').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>
+                <optgroup label={t('transactions.income')}>
+                  {categories.filter((c) => c.type === 'income').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>
+              </select>
+            )}
           </div>
 
           <div>
@@ -340,6 +462,11 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
       </motion.div>
     </motion.div>
   )
+}
+
+const rowVariants = {
+  hidden: { opacity: 0, x: -8 },
+  visible: (i) => ({ opacity: 1, x: 0, transition: { duration: 0.22, delay: Math.min(i * 0.04, 0.4) } }),
 }
 
 const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
@@ -376,6 +503,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const { data: recurringList = [] } = useQuery({ queryKey: ['recurring'], queryFn: recurringApi.list })
   const queryClient = useQueryClient()
   const deleteRecurringMutation = useMutation({ mutationFn: recurringApi.remove, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recurring'] }) })
+  const toggleRecurringMutation = useMutation({ mutationFn: ({ id, is_active }) => recurringApi.update(id, { is_active }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recurring'] }) })
 
   const openClearConfirm = () => {
     setClearMode('all')
@@ -476,7 +604,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
             onClick={() => setShowImport(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--surface)', border: '0.5px solid var(--border-card)', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, padding: '8px 12px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
           >
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4 4l4-4m0 0l4 4m-4-4V4" /></svg>
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m-4-4l4 4 4-4M4 20h16" /></svg>
             {t('transactions.import')}
           </motion.div>
           <motion.div whileTap={{ scale: 0.96 }} onClick={() => { setMutError(''); setModal({ tx: null }) }}
@@ -496,7 +624,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
           ].map(({ label, key }) => (
             <div key={key}>
               <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{label}</label>
-              <DateSelect value={filters[key]} onChange={(v) => setFilters((f) => ({ ...f, [key]: v }))} />
+              <DateSelect value={filters[key]} onChange={(v) => setFilters((f) => ({ ...f, [key]: v }))} style={{ padding: '6px 3px', fontSize: '12px' }} />
             </div>
           ))}
           <div>
@@ -583,23 +711,32 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
       )}
 
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <SkeletonTransactions />
       ) : allItems.length === 0 ? (
         <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px' }}>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('transactions.noFound')}</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{t('transactions.noFoundHint')}</p>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>💸</div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('transactions.noFound')}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>{t('transactions.noFoundHint')}</p>
+          <motion.div whileTap={{ scale: 0.97 }} onClick={() => { setMutError(''); setModal({ tx: null }) }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 600, padding: '10px 18px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span style={{ fontSize: '15px', lineHeight: 1 }}>+</span> {t('transactions.add')}
+          </motion.div>
         </div>
       ) : (
         <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', overflow: 'hidden' }}>
+          <AnimatePresence initial={false}>
           {allItems.map((tx, i) => {
             const cat = categoryMap[tx.category_id]
             const isExpense = cat?.type === 'expense'
             return (
-              <div
+              <motion.div
                 key={tx.id}
+                custom={i}
+                variants={rowVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, height: 0, overflow: 'hidden', transition: { duration: 0.2 } }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
                   padding: '12px 16px',
@@ -618,44 +755,48 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(tx.tx_date)}</span>
                 </div>
 
-                <div style={{ fontSize: '13px', fontWeight: 600, flexShrink: 0, color: isExpense ? 'var(--amaranth)' : '#10b981' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, flexShrink: 0, color: isExpense ? 'var(--amaranth)' : '#10b981', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {isExpense ? '−' : '+'}{formatMoney(tx.amount_cents, currency)}
                 </div>
 
                 <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
-                  <button style={iconBtn} onClick={() => { setMutError(''); setModal({ tx }) }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--amaranth)'; e.currentTarget.style.background = 'rgba(229,43,80,0.08)' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                  >
-                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
                   {pendingDeleteId === tx.id ? (
                     <>
-                      <button style={{ ...iconBtn, color: '#10b981' }} onClick={() => { deleteMutation.mutate(tx.id); setPendingDeleteId(null) }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.08)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                      <span style={{ fontSize: '11px', color: '#E52B50', fontWeight: 500, alignSelf: 'center', marginRight: '2px' }}>{t('transactions.confirmDelete')}</span>
+                      <button style={iconBtn} title="Confirm" onClick={() => { setPendingDeleteId(null); deleteMutation.mutate(tx.id) }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#059669'; e.currentTarget.style.background = 'rgba(5,150,105,0.08)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
                       >
-                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                       </button>
-                      <button style={iconBtn} onClick={() => setPendingDeleteId(null)}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(229,43,80,0.08)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                      <button style={iconBtn} title="Cancel" onClick={() => setPendingDeleteId(null)}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(0,0,0,0.06)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
                       >
-                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </>
                   ) : (
-                    <button style={iconBtn} onClick={() => setPendingDeleteId(tx.id)}
-                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--amaranth)'; e.currentTarget.style.background = 'rgba(229,43,80,0.08)' }}
-                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
-                    >
-                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
+                    <>
+                      <button style={iconBtn} onClick={() => { setMutError(''); setModal({ tx }) }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--amaranth)'; e.currentTarget.style.background = 'rgba(229,43,80,0.08)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                      <button style={iconBtn} onClick={() => setPendingDeleteId(tx.id)}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--amaranth)'; e.currentTarget.style.background = 'rgba(229,43,80,0.08)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )
           })}
+          </AnimatePresence>
 
           {hasNextPage && (
             <div style={{ borderTop: '1px solid var(--tx-border)', padding: '12px 16px', textAlign: 'center' }}>
@@ -685,13 +826,23 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {recurringList.map((rt) => (
               <div key={rt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg)', borderRadius: '10px', border: '1px solid var(--border-card)', opacity: rt.is_active ? 1 : 0.5 }}>
-                <div>
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
                   <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{formatMoney(rt.amount_cents, currency)}</span>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '8px' }}>{t(`transactions.${rt.frequency}`)}</span>
-                  {rt.note && <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>— {rt.note}</span>}
+                  {rt.note && <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', maxWidth: '100px', verticalAlign: 'middle' }}>— {rt.note}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t('transactions.nextDate')}: {rt.next_date}</span>
+                  <button
+                    title={rt.is_active ? t('transactions.pause') : t('transactions.resume')}
+                    style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                    onClick={() => toggleRecurringMutation.mutate({ id: rt.id, is_active: !rt.is_active })}
+                  >
+                    {rt.is_active
+                      ? <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6" /></svg>
+                      : <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
+                    }
+                  </button>
                   <button
                     style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
                     onClick={() => deleteRecurringMutation.mutate(rt.id)}

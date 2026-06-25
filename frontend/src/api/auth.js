@@ -39,6 +39,20 @@ const authApi = {
     const { data } = await client.post('/auth/telegram', { init_data: initData })
     return data
   },
+
+  deleteAccount: async () => {
+    await client.delete('/user/me')
+  },
+
+  exportData: async () => {
+    const response = await client.get('/user/me/export', { responseType: 'blob' })
+    const url = URL.createObjectURL(new Blob([response.data], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'purrse-export.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  },
 }
 
 export default authApi

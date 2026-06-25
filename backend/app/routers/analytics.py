@@ -34,6 +34,16 @@ def _parse_month(month_str: str | None) -> tuple[int, int]:
         )
 
 
+@router.get("/running-total")
+@limiter.limit("300/minute")
+async def get_running_total(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await analytics_service.running_total(user_id=current_user.id, db=db)
+
+
 @router.get("/summary")
 @limiter.limit("300/minute")
 async def get_summary(

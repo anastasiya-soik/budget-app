@@ -14,20 +14,12 @@ const FeedbackModal = ({ onClose }) => {
 
   const feedbackMutation = useMutation({
     mutationFn: (msg) => feedbackApi.send(msg),
-    onSuccess: () => {
-      onClose()
-    },
-    onError: (err) => {
-      setError(apiError(err))
-    },
+    onSuccess: () => onClose(),
+    onError: (err) => setError(apiError(err)),
   })
 
   const handleSubmit = () => {
-    if (!message.trim()) {
-      setError(t('feedback.required'))
-      return
-    }
-    if (message.length < 3) {
+    if (!message.trim() || message.length < 3) {
       setError(t('feedback.tooShort'))
       return
     }
@@ -49,30 +41,14 @@ const FeedbackModal = ({ onClose }) => {
         <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginTop: 0, marginBottom: '16px' }}>
           {t('feedback.title')}
         </h3>
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <textarea
             value={message}
             onChange={(e) => { setMessage(e.target.value); setError('') }}
             placeholder={t('feedback.placeholder')}
-            style={{
-              width: '100%',
-              borderRadius: '10px',
-              padding: '10px 14px',
-              fontSize: '14px',
-              border: '1px solid var(--border-card)',
-              background: 'var(--surface)',
-              color: 'var(--text-primary)',
-              outline: 'none',
-              boxSizing: 'border-box',
-              minHeight: '100px',
-              fontFamily: 'inherit',
-              resize: 'none',
-            }}
+            style={{ width: '100%', borderRadius: '10px', padding: '10px 14px', fontSize: '14px', border: '1px solid var(--border-card)', background: 'var(--surface)', color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box', minHeight: '100px', fontFamily: 'inherit', resize: 'none' }}
           />
-
           {error && <div style={{ background: 'rgba(229,43,80,0.08)', border: '1px solid rgba(229,43,80,0.2)', color: '#E52B50', fontSize: '13px', borderRadius: '10px', padding: '10px 14px' }}>{error}</div>}
-
           <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
             <motion.div whileTap={{ scale: 0.97 }} onClick={onClose}
               style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-card)', color: 'var(--text-primary)', background: 'var(--surface)', userSelect: 'none' }}

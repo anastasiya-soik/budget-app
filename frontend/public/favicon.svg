@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="32" fill="#E52B50"/>
+  <!-- Left ear -->
+  <polygon points="10,22 18,8 24,26" fill="#FF6B84"/>
+  <!-- Right ear -->
+  <polygon points="54,22 46,8 40,26" fill="#FF6B84"/>
+  <!-- Face -->
+  <ellipse cx="32" cy="36" rx="20" ry="18" fill="#FF6B84"/>
+  <!-- Left eye -->
+  <ellipse cx="24" cy="32" rx="3.5" ry="4" fill="white"/>
+  <!-- Right eye -->
+  <ellipse cx="40" cy="32" rx="3.5" ry="4" fill="white"/>
+  <!-- Left pupil -->
+  <ellipse cx="24.5" cy="33" rx="1.5" ry="2" fill="#1a0a10"/>
+  <!-- Right pupil -->
+  <ellipse cx="40.5" cy="33" rx="1.5" ry="2" fill="#1a0a10"/>
+  <!-- Nose -->
+  <ellipse cx="32" cy="39" rx="2" ry="1.5" fill="#E52B50"/>
+  <!-- Mouth -->
+  <path d="M28 42 Q32 46 36 42" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Whiskers left -->
+  <line x1="12" y1="38" x2="24" y2="40" stroke="white" stroke-width="1" opacity="0.7"/>
+  <line x1="12" y1="42" x2="24" y2="42" stroke="white" stroke-width="1" opacity="0.7"/>
+  <!-- Whiskers right -->
+  <line x1="52" y1="38" x2="40" y2="40" stroke="white" stroke-width="1" opacity="0.7"/>
+  <line x1="52" y1="42" x2="40" y2="42" stroke="white" stroke-width="1" opacity="0.7"/>
+</svg>

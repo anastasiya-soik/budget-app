@@ -18,7 +18,12 @@
     "addIncome": "Доход",
     "addExpense": "Расход",
     "savingsRate": "Сохранено {{rate}}% дохода",
-    "avgExpense": "Ср. расходы: {{amount}} / мес"
+    "avgExpense": "Ср. расходы: {{amount}} / мес",
+    "runningTotal": "Текущий остаток",
+    "monthlyResult": "{{month}}: доходы {{income}}, расходы {{expense}}",
+    "openingBalance": "Нач. баланс",
+    "openingBalanceSaved": "Баланс сохранён",
+    "openingBalanceHint": "Сумма на счетах до начала учёта в приложении"
   },
   "transactions": {
     "title": "Транзакции",
@@ -48,7 +53,10 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "saving": "Сохранение…",
-    "fillRequired": "Заполните сумму, категорию и дату",
+    "fillRequired": "Заполните сумму и дату",
+    "selectCategory": "Выберите категорию",
+    "newCategory": "Новая",
+    "noCategoriesHint": "Категорий пока нет — создай их в разделе «Категории»",
     "importTitle1": "Импорт CSV — файл",
     "importTitle2": "Импорт CSV — колонки",
     "importTitle3": "Импорт CSV — готово",
@@ -59,7 +67,7 @@
     "importDateCol": "Колонка даты *",
     "importAmountCol": "Колонка суммы *",
     "importCategoryCol": "Колонка категории",
-    "importTypeCol": "Колонка типа (income/expense)",
+    "importTypeCol": "Колонка типа (income/expense/transfer…)",
     "importNoteCol": "Колонка заметки",
     "importSkip": "— пропустить —",
     "back": "← Назад",
@@ -69,6 +77,7 @@
     "importDone": "Импорт завершён!",
     "importStats": "Создано транзакций: {{created}}, пропущено строк: {{skipped}}.",
     "close": "Закрыть",
+    "confirmDelete": "Удалить?",
     "recurringTitle": "Повторяющиеся платежи",
     "recurringNew": "Новый повторяющийся платёж",
     "recurringNone": "Пока нет повторяющихся платежей.",
@@ -104,7 +113,7 @@
     "add": "Добавить цель",
     "noGoals": "Целей пока нет",
     "noGoalsHint": "Создайте цель накопления",
-    "done": "Готово!",
+    "done": "Готово! 🎉",
     "deadline": "Срок",
     "saved": "накоплено",
     "remaining": "осталось",
@@ -119,7 +128,8 @@
     "fillRequired": "Введите название и целевую сумму",
     "cancel": "Отмена",
     "save": "Сохранить",
-    "saving": "Сохранение…"
+    "saving": "Сохранение…",
+    "toastSaved": "Цель сохранена"
   },
   "categories": {
     "title": "Категории",
@@ -127,6 +137,7 @@
     "add": "Добавить",
     "noCategories": "Категорий пока нет",
     "noCategoriesHint": "Создайте первую категорию для трекинга",
+    "seedDefaults": "Добавить стандартные категории",
     "expense": "Расход",
     "income": "Доход",
     "newTitle": "Новая категория",
@@ -138,7 +149,8 @@
     "cancel": "Отмена",
     "save": "Сохранить",
     "saving": "Сохранение…",
-    "nameRequired": "Введите название"
+    "nameRequired": "Введите название",
+    "toastSaved": "Категория сохранена"
   },
   "settings": {
     "title": "Настройки",
@@ -162,7 +174,11 @@
     "passwordChanged": "Пароль изменён!",
     "updateEmail": "Изменить email",
     "newEmail": "Новый email",
-    "emailUpdated": "Email обновлён!"
+    "emailUpdated": "Email обновлён!",
+    "exportData": "Скачать мои данные",
+    "deleteAccount": "Удалить аккаунт",
+    "confirmDelete": "Вы уверены? Это действие необратимо. Все данные будут удалены.",
+    "deleting": "Удаление…"
   },
   "budget": {
     "title": "Бюджет",
@@ -177,16 +193,8 @@
     "saveError": "Ошибка сохранения",
     "export": "Экспорт CSV",
     "errorCategory": "Выберите категорию",
-    "errorAmount": "Введите сумму больше 0"
-  },
-  "onboarding": {
-    "title": "Добро пожаловать в purrse!",
-    "subtitle": "Умный трекер личных финансов",
-    "step1": "Отслеживай доходы и расходы по категориям",
-    "step2": "Начни с создания первой категории",
-    "step3": "Ставь цели и лимиты для контроля бюджета",
-    "cta": "Создать первую категорию →",
-    "skip": "Пропустить"
+    "errorAmount": "Введите сумму больше 0",
+    "toastSaved": "Лимит сохранён"
   },
   "onboarding": {
     "title": "Добро пожаловать в purrse!",
@@ -207,7 +215,11 @@
     "passwordPlaceholderNew": "Минимум 8 символов",
     "emptyFields": "Введите email и пароль",
     "signingIn": "Вход…",
-    "creatingAccount": "Создание аккаунта…"
+    "creatingAccount": "Создание аккаунта…",
+    "telegramLoading": "Входим через Telegram…",
+    "telegramError": "Не удалось войти",
+    "telegramErrorHint": "Попробуй ещё раз или войди по почте",
+    "telegramRetry": "Повторить"
   },
   "feedback": {
     "button": "Отзыв",

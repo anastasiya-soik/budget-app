@@ -15,6 +15,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
+@router.post("/seed-defaults", response_model=list[CategoryOut])
+@limiter.limit("10/minute")
+async def seed_default_categories(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await category_service.seed_defaults(user_id=current_user.id, db=db)
+
+
 @router.get("", response_model=list[CategoryOut])
 @limiter.limit("300/minute")
 async def list_categories(

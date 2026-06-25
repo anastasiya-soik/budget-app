@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,19 @@ import { useScrollLock } from '../hooks/useScrollLock'
 import useAuthStore from '../store/authStore'
 import { formatMoney, formatDate, today, apiError } from '../utils'
 import { DateSelect } from './DateSelect'
+import { SkeletonGoals } from './ui/Skeleton'
+import { useToast } from '../hooks/useToast'
+import { Confetti } from './ui/Confetti'
+
+const CELEBRATED_KEY = 'purrse-celebrated-goals'
+const getCelebrated = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(CELEBRATED_KEY) || '[]')) } catch { return new Set() }
+}
+const addCelebrated = (id) => {
+  const s = getCelebrated()
+  s.add(String(id))
+  localStorage.setItem(CELEBRATED_KEY, JSON.stringify([...s]))
+}
 
 const GOAL_GRADIENTS = [
   { bar: 'linear-gradient(90deg, #E52B50, #64A0FF)', accent: '#E52B50' },
@@ -111,15 +124,28 @@ const Goals = () => {
   const currency = user?.currency || 'USD'
   const [modal, setModal] = useState(null)
   const [mutError, setMutError] = useState('')
+  const [showConfetti, setShowConfetti] = useState(false)
+  const showToast = useToast()
 
   const { data: goals = [], isLoading } = useQuery({ queryKey: ['goals'], queryFn: goalsApi.list })
+
+  useEffect(() => {
+    if (!goals.length) return
+    const celebrated = getCelebrated()
+    const complete = goals.find(g => g.target_cents > 0 && g.current_cents >= g.target_cents && !celebrated.has(String(g.id)))
+    if (complete) {
+      addCelebrated(complete.id)
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 1600)
+    }
+  }, [goals])
 
   const queryClient = useQueryClient()
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['goals'] })
 
-  const createMutation = useMutation({ mutationFn: goalsApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
-  const updateMutation = useMutation({ mutationFn: ({ id, data }) => goalsApi.update(id, data), onSuccess: () => { invalidate(); setModal(null); setMutError('') }, onError: (err) => setMutError(apiError(err)) })
-  const deleteMutation = useMutation({ mutationFn: goalsApi.remove, onSuccess: invalidate })
+  const createMutation = useMutation({ mutationFn: goalsApi.create, onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('goals.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
+  const updateMutation = useMutation({ mutationFn: ({ id, data }) => goalsApi.update(id, data), onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('goals.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
+  const deleteMutation = useMutation({ mutationFn: goalsApi.remove, onSuccess: () => { invalidate(); showToast(t('transactions.toastDeleted')) } })
 
   const handleSave = (formData) => {
     if (modal?.goal) updateMutation.mutate({ id: modal.goal.id, data: formData })
@@ -142,38 +168,46 @@ const Goals = () => {
         </motion.div>
       </div>
 
+      {showConfetti && <Confetti />}
+
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '3px solid var(--border-card)', borderTopColor: 'var(--amaranth)', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <SkeletonGoals />
       ) : goals.length === 0 ? (
         <motion.div custom={0} variants={cardVariants} initial="hidden" animate="visible"
           style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px' }}
         >
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('goals.noGoals')}</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{t('goals.noGoalsHint')}</p>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎯</div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('goals.noGoals')}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 16px' }}>{t('goals.noGoalsHint')}</p>
+          <motion.div whileTap={{ scale: 0.97 }} onClick={() => { setMutError(''); setModal({ goal: null }) }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 600, padding: '10px 18px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span style={{ fontSize: '15px', lineHeight: 1 }}>+</span> {t('goals.add')}
+          </motion.div>
         </motion.div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <AnimatePresence>
           {goals.map((goal, idx) => {
             const progress = pct(goal)
             const isComplete = progress >= 100
             const gradient = GOAL_GRADIENTS[idx % GOAL_GRADIENTS.length]
             return (
               <motion.div key={goal.id} custom={idx} variants={cardVariants} initial="hidden" animate="visible"
+                exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.22 } }}
+                whileHover={{ y: -2 }}
                 style={{
                   background: 'var(--surface)',
                   border: '0.5px solid var(--border-card)',
                   borderTop: `3px solid ${gradient.accent}`,
                   borderRadius: '14px',
                   padding: '18px 18px 16px',
+                  marginBottom: '10px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{goal.name}</h3>
+                      <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>{goal.name}</h3>
                       {isComplete && (
                         <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '20px', background: 'rgba(16,185,129,0.12)', color: '#059669' }}>
                           {t('goals.done')}
@@ -204,7 +238,7 @@ const Goals = () => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{formatMoney(goal.current_cents, currency)} {t('goals.saved')}</span>
-                  <span style={{ fontWeight: 600, background: gradient.bar, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  <span style={{ fontWeight: 600, background: gradient.bar, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '55%' }}>
                     {progress}% {t('goals.of')} {formatMoney(goal.target_cents, currency)}
                   </span>
                 </div>
@@ -224,7 +258,7 @@ const Goals = () => {
               </motion.div>
             )
           })}
-        </div>
+        </AnimatePresence>
       )}
 
       <AnimatePresence>
