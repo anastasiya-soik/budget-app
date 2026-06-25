@@ -84,6 +84,8 @@ def _stamp_user(obj):
             obj.updated_at = now
         if obj.currency is None:
             obj.currency = "BYN"
+        if obj.opening_balance_cents is None:
+            obj.opening_balance_cents = 0
 
 
 # ---------------------------------------------------------------------------

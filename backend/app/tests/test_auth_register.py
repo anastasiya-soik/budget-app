@@ -76,6 +76,7 @@ async def client(fresh_user):
             obj.email = fresh_user.email
             obj.telegram_id = fresh_user.telegram_id
             obj.currency = fresh_user.currency
+            obj.opening_balance_cents = fresh_user.opening_balance_cents
             obj.created_at = fresh_user.created_at
 
     db_mock.add = MagicMock(side_effect=capture_add)
