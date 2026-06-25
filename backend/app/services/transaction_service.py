@@ -203,11 +203,16 @@ async def bulk_create(
 async def delete_all(
     user_id: uuid.UUID,
     db: AsyncSession,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> int:
-    """Hard-delete all transactions for the user. Returns count deleted."""
-    result = await db.execute(
-        select(Transaction).where(Transaction.user_id == user_id)
-    )
+    """Hard-delete transactions for the user. Returns count deleted."""
+    query = select(Transaction).where(Transaction.user_id == user_id)
+    if date_from:
+        query = query.where(Transaction.tx_date >= date_from)
+    if date_to:
+        query = query.where(Transaction.tx_date <= date_to)
+    result = await db.execute(query)
     txs = list(result.scalars().all())
     for tx in txs:
         await db.delete(tx)

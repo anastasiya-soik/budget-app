@@ -131,8 +131,8 @@ const Budget = () => {
   const deleteMutation = useMutation({
     mutationFn: (id) => budgetsApi.remove(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] })
-      queryClient.invalidateQueries({ queryKey: ['budget-bars'] })
+      queryClient.invalidateQueries({ queryKey: ['budgets', selectedMonth] })
+      queryClient.invalidateQueries({ queryKey: ['budget-bars', selectedMonth] })
     },
   })
 

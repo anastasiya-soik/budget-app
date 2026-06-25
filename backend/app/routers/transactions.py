@@ -97,6 +97,7 @@ async def import_confirm(
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Invalid column mapping")
     categories = await get_all_categories(current_user.id, db)
+
     rows, skipped, new_cats = import_service.parse_csv_rows(
         content,
         date_col=m.date_col,
@@ -221,10 +222,14 @@ async def update_transaction(
 @limiter.limit("5/minute")
 async def delete_all_transactions(
     request: Request,
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    count = await transaction_service.delete_all(user_id=current_user.id, db=db)
+    count = await transaction_service.delete_all(
+        user_id=current_user.id, db=db, date_from=date_from, date_to=date_to
+    )
     return {"ok": True, "deleted": count}
 
 

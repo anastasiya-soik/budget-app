@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import transactionsApi from '../api/transactions'
+import analyticsApi from '../api/analytics'
 import authApi from '../api/auth'
 import categoriesApi from '../api/categories'
 import recurringApi from '../api/recurring'
@@ -481,6 +482,10 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const [showRecurringModal, setShowRecurringModal] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [clearMode, setClearMode] = useState('all')
+  const [clearFrom, setClearFrom] = useState(firstOfMonth())
+  const [clearTo, setClearTo] = useState(today())
+  const [showBreakdown, setShowBreakdown] = useState(false)
 
   // Open the add-transaction modal automatically when triggered from Overview quick-add
   useEffect(() => {
@@ -500,6 +505,13 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const deleteRecurringMutation = useMutation({ mutationFn: recurringApi.remove, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recurring'] }) })
   const toggleRecurringMutation = useMutation({ mutationFn: ({ id, is_active }) => recurringApi.update(id, { is_active }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recurring'] }) })
 
+  const openClearConfirm = () => {
+    setClearMode('all')
+    setClearFrom(filters.date_from)
+    setClearTo(filters.date_to)
+    setShowClearConfirm(true)
+  }
+
   const { data, isLoading, isFetchingNextPage, fetchNextPage, hasNextPage } = useInfiniteQuery({
     queryKey: ['transactions', filters],
     queryFn: ({ pageParam }) => transactionsApi.list({
@@ -515,6 +527,29 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const allItems = data?.pages.flatMap((p) => p.items) || []
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['transactions'] })
 
+  const { data: filterSummary } = useQuery({
+    queryKey: ['filter-summary', filters],
+    queryFn: () => analyticsApi.filterSummary({
+      date_from: filters.date_from || undefined,
+      date_to: filters.date_to || undefined,
+      category_id: filters.category_id || undefined,
+      type: filters.type || undefined,
+      search: filters.search.length >= 3 ? filters.search : undefined,
+    }),
+  })
+
+  const { data: breakdownData } = useQuery({
+    queryKey: ['filter-breakdown', filters],
+    queryFn: () => analyticsApi.filterBreakdown({
+      date_from: filters.date_from || undefined,
+      date_to: filters.date_to || undefined,
+      category_id: filters.category_id || undefined,
+      type: filters.type || undefined,
+      search: filters.search.length >= 3 ? filters.search : undefined,
+    }),
+    enabled: showBreakdown,
+  })
+
   const handleImportSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['transactions'] })
     queryClient.invalidateQueries({ queryKey: ['categories'] })
@@ -529,9 +564,15 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const updateMutation = useMutation({ mutationFn: ({ id, data: body }) => transactionsApi.update(id, body), onSuccess: () => { invalidate(); setModal(null); setMutError(''); showToast(t('transactions.toastSaved')) }, onError: (err) => setMutError(apiError(err)) })
   const deleteMutation = useMutation({ mutationFn: transactionsApi.remove, onSuccess: () => { invalidate(); showToast(t('transactions.toastDeleted')) } })
   const clearAllMutation = useMutation({
-    mutationFn: transactionsApi.clearAll,
-    onSuccess: () => {
-      handleImportSuccess()
+    mutationFn: (params) => transactionsApi.clearAll(params),
+    onSuccess: (_, params) => {
+      if (params && (params.date_from || params.date_to)) {
+        invalidate()
+        queryClient.invalidateQueries({ queryKey: ['analytics'] })
+        queryClient.invalidateQueries({ queryKey: ['filter-summary'] })
+      } else {
+        handleImportSuccess()
+      }
       setShowClearConfirm(false)
       showToast(t('transactions.clearAllDone'))
     },
@@ -553,7 +594,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
         <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('transactions.title')}</h2>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <motion.div whileTap={{ scale: 0.96 }}
-            onClick={() => setShowClearConfirm(true)}
+            onClick={() => openClearConfirm()}
             style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'transparent', border: '0.5px solid rgba(229,43,80,0.3)', color: '#E52B50', fontSize: '13px', fontWeight: 500, padding: '8px 12px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
           >
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -623,6 +664,51 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
           )}
         </div>
       </div>
+
+      {filterSummary && (filterSummary.income_cents > 0 || filterSummary.expense_cents > 0) && (
+        <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div
+            style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', cursor: 'pointer', userSelect: 'none' }}
+            onClick={() => setShowBreakdown(v => !v)}
+          >
+            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {filterSummary.income_cents > 0 && (
+                <span style={{ color: '#10b981', fontWeight: 600, fontSize: '13px' }}>⬆ +{formatMoney(filterSummary.income_cents, currency)}</span>
+              )}
+              {filterSummary.expense_cents > 0 && (
+                <span style={{ color: 'var(--amaranth)', fontWeight: 600, fontSize: '13px' }}>⬇ −{formatMoney(filterSummary.expense_cents, currency)}</span>
+              )}
+              {filterSummary.income_cents > 0 && filterSummary.expense_cents > 0 && (
+                <span style={{ color: filterSummary.balance_cents >= 0 ? '#10b981' : 'var(--amaranth)', fontWeight: 600, fontSize: '13px' }}>
+                  = {filterSummary.balance_cents >= 0 ? '+' : '−'}{formatMoney(Math.abs(filterSummary.balance_cents), currency)}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {showBreakdown ? '▲' : '▼ по категориям'}
+            </span>
+          </div>
+
+          {showBreakdown && breakdownData?.items?.length > 0 && (
+            <div style={{ borderTop: '0.5px solid var(--border-card)', padding: '8px 0' }}>
+              {breakdownData.items.map(item => {
+                const total = filterSummary.expense_cents + filterSummary.income_cents || 1
+                const pct = Math.round((item.total_cents / total) * 100)
+                return (
+                  <div key={item.category_id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 14px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color || '#808080', flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '4px' }}>{pct}%</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: item.type === 'income' ? '#10b981' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                      {item.type === 'income' ? '+' : '−'}{formatMoney(item.total_cents, currency)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <SkeletonTransactions />
@@ -786,16 +872,46 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
               style={{ ...cardStyle, maxWidth: '360px', textAlign: 'center' }}
               onClick={(e) => e.stopPropagation()}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>🗑️</div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{t('transactions.clearAllConfirmTitle')}</p>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 20px' }}>{t('transactions.clearAllConfirmHint')}</p>
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: 'var(--bg)', borderRadius: '10px', padding: '3px' }}>
+                {['all', 'period'].map(mode => (
+                  <div key={mode} onClick={() => setClearMode(mode)}
+                    style={{ flex: 1, padding: '7px 4px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, textAlign: 'center', cursor: 'pointer', transition: 'all 0.15s',
+                      background: clearMode === mode ? 'var(--surface)' : 'transparent',
+                      color: clearMode === mode ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}>
+                    {mode === 'all' ? t('transactions.clearModeAll') : t('transactions.clearModePeriod')}
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                {clearMode === 'all' ? t('transactions.clearAllConfirmTitle') : t('transactions.clearPeriodTitle')}
+              </p>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 16px' }}>
+                {clearMode === 'all' ? t('transactions.clearAllConfirmHint') : t('transactions.clearPeriodHint')}
+              </p>
+              {clearMode === 'period' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px', textAlign: 'left' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{t('transactions.from')}</label>
+                    <DateSelect value={clearFrom} onChange={setClearFrom} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{t('transactions.to')}</label>
+                    <DateSelect value={clearTo} onChange={setClearTo} />
+                  </div>
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '10px' }}>
                 <motion.div whileTap={{ scale: 0.97 }} onClick={() => setShowClearConfirm(false)}
                   style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-card)', color: 'var(--text-primary)', background: 'var(--surface)', userSelect: 'none' }}>
                   {t('transactions.clearAllCancel')}
                 </motion.div>
-                <motion.div whileTap={{ scale: 0.97 }} onClick={() => clearAllMutation.mutate()}
+                <motion.div whileTap={{ scale: 0.97 }}
+                  onClick={() => clearAllMutation.mutate(
+                    clearMode === 'period' ? { date_from: clearFrom, date_to: clearTo } : {}
+                  )}
                   style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: clearAllMutation.isPending ? 'not-allowed' : 'pointer', background: '#E52B50', color: 'white', opacity: clearAllMutation.isPending ? 0.7 : 1, userSelect: 'none' }}>
-                  {clearAllMutation.isPending ? '…' : t('transactions.clearAllConfirmBtn')}
+                  {clearAllMutation.isPending ? '…' : (clearMode === 'all' ? t('transactions.clearAllConfirmBtn') : t('transactions.clearPeriodConfirmBtn'))}
                 </motion.div>
               </div>
             </motion.div>

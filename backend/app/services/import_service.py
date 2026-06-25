@@ -28,6 +28,37 @@ def parse_csv_preview(content: bytes) -> dict:
     }
 
 
+def collect_new_categories(
+    content: bytes,
+    category_col: int,
+    type_col: int,
+    existing: list[Category],
+) -> list[dict]:
+    """Return [{name, type}] for categories present in CSV but missing from existing list."""
+    existing_lower = {c.name.lower() for c in existing}
+    text = content.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(text))
+    all_rows = list(reader)
+    data_rows = all_rows[1:] if all_rows else []
+
+    seen: dict[str, dict] = {}  # lower_name -> {name, type}
+    for row in data_rows:
+        try:
+            if category_col >= len(row) or type_col >= len(row):
+                continue
+            name = row[category_col].strip()
+            type_ = row[type_col].strip().lower()
+            if not name or type_ not in _VALID_TYPES:
+                continue
+            key = name.lower()
+            if key not in existing_lower and key not in seen:
+                seen[key] = {"name": name, "type": type_}
+        except (IndexError, ValueError):
+            continue
+
+    return list(seen.values())
+
+
 def parse_csv_rows(
     content: bytes,
     date_col: int,

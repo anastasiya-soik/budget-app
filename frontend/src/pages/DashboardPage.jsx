@@ -234,6 +234,9 @@ const DashboardPage = () => {
           {/* Bottom */}
           <div style={{ padding: '12px 16px 20px', borderTop: '0.5px solid var(--border)', position: 'relative', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setShowFeedback(true)} style={{ ...ghostBtn, fontSize: '14px' }}>
+                💬
+              </button>
               <button onClick={toggleTheme} style={ghostBtn}>
                 {isDark ? '☀️' : '🌙'}
               </button>
