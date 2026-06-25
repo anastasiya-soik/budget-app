@@ -357,6 +357,10 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
       setLocalError(t('transactions.fillRequired'))
       return
     }
+    if (!categoryId) {
+      setLocalError(t('transactions.selectCategory'))
+      return
+    }
     setLocalError('')
     onSave({ amount_cents: amountCents, category_id: categoryId || null, tx_date: txDate, note: note.trim() || null })
   }
