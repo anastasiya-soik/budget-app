@@ -97,7 +97,11 @@
     "clearAllConfirmHint": "Это действие необратимо. Все транзакции будут удалены.",
     "clearAllConfirmBtn": "Да, удалить всё",
     "clearAllCancel": "Отмена",
-    "clearAllDone": "История очищена"
+    "clearAllDone": "История очищена",
+    "importOpeningTitle": "Укажи начальный баланс",
+    "importOpeningHint": "Сколько было на счетах до первой транзакции? Это нужно для точного расчёта текущего остатка.",
+    "importOpeningSaved": "Сохранено",
+    "importOpeningSave": "Сохранить"
   },
   "goals": {
     "title": "Цели",

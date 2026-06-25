@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import transactionsApi from '../api/transactions'
+import authApi from '../api/auth'
 import categoriesApi from '../api/categories'
 import recurringApi from '../api/recurring'
 import useAuthStore from '../store/authStore'
@@ -19,6 +20,8 @@ const inputStyle2 = { width: '100%', borderRadius: '10px', padding: '10px 14px',
 const ImportCsvModal = ({ onClose, onSuccess }) => {
   useScrollLock()
   const { t } = useTranslation()
+  const { user } = useAuthStore()
+  const currency = user?.currency || 'BYN'
   const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -27,6 +30,9 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef()
+  const [openingValue, setOpeningValue] = useState('')
+  const [openingSaved, setOpeningSaved] = useState(false)
+  const [openingLoading, setOpeningLoading] = useState(false)
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0] || null)
@@ -60,6 +66,21 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
       setError(apiError(e))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSaveOpening = async () => {
+    const cents = Math.round(parseFloat(openingValue || '0') * 100)
+    if (isNaN(cents)) return
+    setOpeningLoading(true)
+    try {
+      await authApi.updateMe({ opening_balance_cents: cents })
+      setOpeningSaved(true)
+      onSuccess()
+    } catch (e) {
+      // ignore, user can retry
+    } finally {
+      setOpeningLoading(false)
     }
   }
 
@@ -175,8 +196,40 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
               {t('transactions.importStats', { created: result.created, skipped: result.skipped })}
             </p>
+
+            {/* Opening balance prompt */}
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-card)', borderRadius: '12px', padding: '16px', textAlign: 'left' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                💡 {t('transactions.importOpeningTitle')}
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+                {t('transactions.importOpeningHint')}
+              </p>
+              {openingSaved ? (
+                <p style={{ fontSize: '13px', color: '#10b981', fontWeight: 600, margin: 0 }}>✓ {t('transactions.importOpeningSaved')}</p>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={openingValue}
+                      onChange={e => setOpeningValue(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleSaveOpening()}
+                      style={{ ...inputStyle2, paddingRight: '44px' }}
+                    />
+                    <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: 'var(--text-muted)', pointerEvents: 'none' }}>{currency}</span>
+                  </div>
+                  <motion.div whileTap={{ scale: 0.97 }} onClick={openingLoading ? undefined : handleSaveOpening}
+                    style={{ borderRadius: '10px', padding: '10px 14px', fontSize: '13px', fontWeight: 600, cursor: openingLoading ? 'not-allowed' : 'pointer', background: 'var(--amaranth-btn)', color: 'white', whiteSpace: 'nowrap', opacity: openingLoading ? 0.7 : 1, userSelect: 'none' }}>
+                    {openingLoading ? '…' : t('transactions.importOpeningSave')}
+                  </motion.div>
+                </div>
+              )}
+            </div>
+
             <motion.div whileTap={{ scale: 0.97 }} onClick={onClose}
-              style={{ borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: 'var(--amaranth-btn)', color: 'white', userSelect: 'none' }}>
+              style={{ borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: openingSaved ? 'var(--amaranth-btn)' : 'var(--surface)', border: openingSaved ? 'none' : '1px solid var(--border-card)', color: openingSaved ? 'white' : 'var(--text-primary)', userSelect: 'none' }}>
               {t('transactions.close')}
             </motion.div>
           </motion.div>

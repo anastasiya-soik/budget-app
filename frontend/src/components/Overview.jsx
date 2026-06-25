@@ -129,6 +129,13 @@ const Overview = ({ onQuickAdd }) => {
           {monthLabel}: +{formatMoney(summary?.income_cents ?? 0, currency)} / −{formatMoney(summary?.expense_cents ?? 0, currency)}
         </p>
 
+        {/* Hint when running total looks wrong due to missing opening balance */}
+        {(rtData?.running_total_cents ?? 0) < 0 && (rtData?.opening_balance_cents ?? 0) === 0 && (
+          <p style={{ color: 'rgba(255,220,100,0.9)', fontSize: '11px', margin: '8px 0 0', fontWeight: 500 }}>
+            💡 {t('overview.openingBalanceHint')}
+          </p>
+        )}
+
         {/* Opening balance inline edit */}
         <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {editingBalance ? (
