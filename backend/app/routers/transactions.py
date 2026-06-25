@@ -96,11 +96,29 @@ async def import_confirm(
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Invalid column mapping")
     categories = await get_all_categories(current_user.id, db)
+
+    # Auto-create missing categories when type column is mapped
+    if m.category_col is not None and m.type_col is not None:
+        from app.services import category_service
+        new_cats = import_service.collect_new_categories(
+            content, m.category_col, m.type_col, categories
+        )
+        for cat in new_cats:
+            try:
+                await category_service.create(
+                    current_user.id, cat["name"], "#808080", cat["type"], db
+                )
+            except Exception:
+                pass  # skip if limit reached or duplicate
+        # Refresh list so new categories are available for mapping
+        categories = await get_all_categories(current_user.id, db)
+
     rows, skipped = import_service.parse_csv_rows(
         content,
         date_col=m.date_col,
         amount_col=m.amount_col,
         category_col=m.category_col,
+        type_col=m.type_col,
         note_col=m.note_col,
         categories=categories,
     )

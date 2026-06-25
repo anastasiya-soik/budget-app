@@ -59,6 +59,7 @@
     "importDateCol": "Date column *",
     "importAmountCol": "Amount column *",
     "importCategoryCol": "Category column",
+    "importTypeCol": "Type column (income/expense)",
     "importNoteCol": "Note column",
     "importSkip": "— skip —",
     "back": "← Back",

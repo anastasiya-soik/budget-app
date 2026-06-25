@@ -59,6 +59,7 @@
     "importDateCol": "Колонка даты *",
     "importAmountCol": "Колонка суммы *",
     "importCategoryCol": "Колонка категории",
+    "importTypeCol": "Колонка типа (income/expense)",
     "importNoteCol": "Колонка заметки",
     "importSkip": "— пропустить —",
     "back": "← Назад",

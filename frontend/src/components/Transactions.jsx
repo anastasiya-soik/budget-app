@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import transactionsApi from '../api/transactions'
 import analyticsApi from '../api/analytics'
-import authApi from '../api/auth'
 import categoriesApi from '../api/categories'
 import recurringApi from '../api/recurring'
 import useAuthStore from '../store/authStore'
@@ -23,7 +22,7 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
-  const [mapping, setMapping] = useState({ date_col: 0, amount_col: 1, category_col: null, note_col: null })
+  const [mapping, setMapping] = useState({ date_col: 0, amount_col: 1, category_col: null, type_col: null, note_col: null })
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -122,6 +121,7 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
               { label: t('transactions.importDateCol'), key: 'date_col', required: true },
               { label: t('transactions.importAmountCol'), key: 'amount_col', required: true },
               { label: t('transactions.importCategoryCol'), key: 'category_col', required: false },
+              { label: t('transactions.importTypeCol'), key: 'type_col', required: false },
               { label: t('transactions.importNoteCol'), key: 'note_col', required: false },
             ].map(({ label, key, required }) => (
               <div key={key}>

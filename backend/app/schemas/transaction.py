@@ -46,6 +46,7 @@ class ImportMapping(BaseModel):
     date_col: int = Field(ge=0)
     amount_col: int = Field(ge=0)
     category_col: int | None = None
+    type_col: int | None = None
     note_col: int | None = None
 
 
