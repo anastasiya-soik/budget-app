@@ -71,6 +71,7 @@ async def category_breakdown(
         .where(Transaction.deleted_at.is_(None))
         .where(Transaction.tx_date >= date_from)
         .where(Transaction.tx_date <= date_to)
+        .where(Category.type == 'expense')
         .group_by(Category.id, Category.name, Category.color, Category.type)
         .order_by(func.sum(Transaction.amount_cents).desc())
     )
@@ -170,3 +171,46 @@ async def trend(
         })
 
     return {"items": items}
+
+
+async def filter_summary(
+    user_id: uuid.UUID,
+    db: AsyncSession,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    category_id: uuid.UUID | None = None,
+    type_filter: str | None = None,
+    search: str | None = None,
+) -> dict:
+    query = (
+        select(
+            func.sum(Transaction.amount_cents).label("total"),
+            Category.type.label("cat_type"),
+        )
+        .join(Category, Transaction.category_id == Category.id)
+        .where(Transaction.user_id == user_id)
+        .where(Transaction.deleted_at.is_(None))
+    )
+    if date_from:
+        query = query.where(Transaction.tx_date >= date_from)
+    if date_to:
+        query = query.where(Transaction.tx_date <= date_to)
+    if category_id:
+        query = query.where(Transaction.category_id == category_id)
+    if type_filter:
+        query = query.where(Category.type == type_filter)
+    if search and len(search) >= 3:
+        query = query.where(
+            Transaction.note_tsv.op("@@")(func.plainto_tsquery("simple", search))
+        )
+    query = query.group_by(Category.type)
+    result = await db.execute(query)
+    rows = result.all()
+    totals = {row.cat_type: row.total or 0 for row in rows}
+    income = totals.get("income", 0)
+    expense = totals.get("expense", 0)
+    return {
+        "income_cents": income,
+        "expense_cents": expense,
+        "balance_cents": income - expense,
+    }

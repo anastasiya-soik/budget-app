@@ -190,6 +190,21 @@ async def update_transaction(
     return tx
 
 
+@router.delete("/all")
+@limiter.limit("5/minute")
+async def delete_all_transactions(
+    request: Request,
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    count = await transaction_service.delete_all(
+        user_id=current_user.id, db=db, date_from=date_from, date_to=date_to
+    )
+    return {"ok": True, "deleted": count}
+
+
 @router.delete("/{tx_id}")
 @limiter.limit("300/minute")
 async def delete_transaction(

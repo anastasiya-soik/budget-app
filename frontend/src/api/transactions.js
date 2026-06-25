@@ -24,6 +24,14 @@ const transactionsApi = {
     return data
   },
 
+  clearAll: async (params = {}) => {
+    const cleaned = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== '' && v != null)
+    )
+    const { data } = await client.delete('/transactions/all', { params: cleaned })
+    return data
+  },
+
   importPreview: (file) => {
     const fd = new FormData()
     fd.append('file', file)

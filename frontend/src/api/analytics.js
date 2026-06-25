@@ -15,6 +15,19 @@ const analyticsApi = {
     const { data } = await client.get('/analytics/trend', { params: { months } })
     return data
   },
+
+  runningTotal: async () => {
+    const { data } = await client.get('/analytics/running-total')
+    return data
+  },
+
+  filterSummary: async (params = {}) => {
+    const cleaned = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== '' && v != null)
+    )
+    const { data } = await client.get('/analytics/filter-summary', { params: cleaned })
+    return data
+  },
 }
 
 export default analyticsApi

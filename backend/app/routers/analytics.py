@@ -1,5 +1,7 @@
 import logging
-from datetime import datetime, timezone
+import uuid
+from datetime import date, datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -86,4 +88,27 @@ async def get_trend(
 ):
     return await analytics_service.trend(
         user_id=current_user.id, months=months, db=db
+    )
+
+
+@router.get("/filter-summary")
+@limiter.limit("300/minute")
+async def get_filter_summary(
+    request: Request,
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    category_id: uuid.UUID | None = Query(None),
+    type: Literal["income", "expense"] | None = Query(None),
+    search: str | None = Query(None, min_length=3, max_length=200),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await analytics_service.filter_summary(
+        user_id=current_user.id,
+        db=db,
+        date_from=date_from,
+        date_to=date_to,
+        category_id=category_id,
+        type_filter=type,
+        search=search,
     )
