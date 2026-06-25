@@ -23,6 +23,7 @@ def _make_user(email: str = "alice@example.com") -> MagicMock:
     user.email = email
     user.telegram_id = None
     user.currency = "BYN"
+    user.opening_balance_cents = 0
     user.created_at = datetime.now(timezone.utc)
     return user
 
