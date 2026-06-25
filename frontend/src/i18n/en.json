@@ -18,7 +18,12 @@
     "addIncome": "Income",
     "addExpense": "Expense",
     "savingsRate": "Saved {{rate}}% of income",
-    "avgExpense": "Avg. expense: {{amount}} / mo"
+    "avgExpense": "Avg. expense: {{amount}} / mo",
+    "runningTotal": "Current balance",
+    "monthlyResult": "{{month}}: income {{income}}, expenses {{expense}}",
+    "openingBalance": "Opening balance",
+    "openingBalanceSaved": "Balance saved",
+    "openingBalanceHint": "Amount in accounts before you started tracking"
   },
   "transactions": {
     "title": "Transactions",

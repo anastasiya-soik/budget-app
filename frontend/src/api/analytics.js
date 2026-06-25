@@ -15,6 +15,11 @@ const analyticsApi = {
     const { data } = await client.get('/analytics/trend', { params: { months } })
     return data
   },
+
+  runningTotal: async () => {
+    const { data } = await client.get('/analytics/running-total')
+    return data
+  },
 }
 
 export default analyticsApi

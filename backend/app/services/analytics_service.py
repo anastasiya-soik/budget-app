@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.category import Category
 from app.models.transaction import Transaction
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,37 @@ def _month_bounds(year: int, month: int) -> tuple[date, date]:
     import calendar
     last_day = calendar.monthrange(year, month)[1]
     return date(year, month, 1), date(year, month, last_day)
+
+
+async def running_total(
+    user_id: uuid.UUID,
+    db: AsyncSession,
+) -> dict:
+    """All-time running total: opening_balance + all income - all expenses."""
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    opening = user.opening_balance_cents if user else 0
+
+    result = await db.execute(
+        select(
+            func.sum(Transaction.amount_cents).label("total"),
+            Category.type.label("type"),
+        )
+        .join(Category, Transaction.category_id == Category.id)
+        .where(Transaction.user_id == user_id)
+        .where(Transaction.deleted_at.is_(None))
+        .group_by(Category.type)
+    )
+    rows = result.all()
+    totals = {row.type: row.total or 0 for row in rows}
+    income = totals.get("income", 0)
+    expense = totals.get("expense", 0)
+    return {
+        "opening_balance_cents": opening,
+        "income_cents": income,
+        "expense_cents": expense,
+        "running_total_cents": opening + income - expense,
+    }
 
 
 async def summary(

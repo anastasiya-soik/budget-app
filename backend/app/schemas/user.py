@@ -21,6 +21,7 @@ class UserOut(BaseModel):
     email: str | None
     telegram_id: int | None
     currency: str
+    opening_balance_cents: int
     created_at: datetime
 
 
@@ -33,6 +34,7 @@ class TokenResponse(BaseModel):
 class UpdateMeRequest(BaseModel):
     email: EmailStr | None = None
     currency: str | None = Field(None, min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
+    opening_balance_cents: int | None = None
 
 
 class ChangePasswordRequest(BaseModel):

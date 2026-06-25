@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
@@ -7,9 +7,11 @@ import {
   BarChart, Bar, XAxis, YAxis,
 } from 'recharts'
 import analyticsApi from '../api/analytics'
+import authApi from '../api/auth'
 import useAuthStore from '../store/authStore'
 import { formatMoney, currentMonth } from '../utils'
 import { SkeletonOverview } from './ui/Skeleton'
+import { useToast } from '../hooks/useToast'
 
 const FALLBACK_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981', '#2060D0']
 
@@ -33,9 +35,13 @@ const cardVariants = {
 const Overview = ({ onQuickAdd }) => {
   const { user } = useAuthStore()
   const { t, i18n } = useTranslation()
+  const showToast = useToast()
   const currency = user?.currency || 'USD'
   const month = currentMonth()
   const [trendPeriod, setTrendPeriod] = useState(6)
+  const [editingBalance, setEditingBalance] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const queryClient = useQueryClient()
 
   const { data: summary, isLoading: sumLoading } = useQuery({
     queryKey: ['analytics', 'summary', month],
@@ -52,16 +58,30 @@ const Overview = ({ onQuickAdd }) => {
     queryFn: () => analyticsApi.trend(trendPeriod),
   })
 
-  const balanceMV = useMotionValue(0)
+  const { data: rtData } = useQuery({
+    queryKey: ['analytics', 'running-total'],
+    queryFn: () => analyticsApi.runningTotal(),
+  })
+
+  const saveBalanceMutation = useMutation({
+    mutationFn: (cents) => authApi.updateMe({ opening_balance_cents: cents }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'running-total'] })
+      setEditingBalance(false)
+      showToast(t('overview.openingBalanceSaved'))
+    },
+  })
+
+  const runningTotalMV = useMotionValue(0)
   const incomeMV = useMotionValue(0)
   const expenseMV = useMotionValue(0)
-  const balanceFmt = useTransform(balanceMV, v => formatMoney(Math.round(v), currency))
+  const runningTotalFmt = useTransform(runningTotalMV, v => formatMoney(Math.round(v), currency))
   const incomeFmt = useTransform(incomeMV, v => formatMoney(Math.round(v), currency))
   const expenseFmt = useTransform(expenseMV, v => formatMoney(Math.round(v), currency))
 
   useEffect(() => {
-    animate(balanceMV, summary?.balance_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
-  }, [summary?.balance_cents])
+    animate(runningTotalMV, rtData?.running_total_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
+  }, [rtData?.running_total_cents])
 
   useEffect(() => {
     animate(incomeMV, summary?.income_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
@@ -83,11 +103,11 @@ const Overview = ({ onQuickAdd }) => {
     return <SkeletonOverview />
   }
 
-  const balanceCents = summary?.balance_cents ?? 0
+  const monthLabel = new Date().toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long' })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Hero balance card */}
+      {/* Hero running total card */}
       <motion.div
         custom={0} variants={cardVariants} initial="hidden" animate="visible"
         style={{
@@ -98,16 +118,47 @@ const Overview = ({ onQuickAdd }) => {
         <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-50px', left: '35%', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,160,255,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '6px', marginTop: 0 }}>
-          {t('overview.balance')} · {new Date().toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' })}
+          {t('overview.runningTotal')}
         </p>
         <motion.p style={{ color: 'white', fontSize: '36px', fontWeight: 700, letterSpacing: '-0.5px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {balanceFmt}
+          {runningTotalFmt}
         </motion.p>
-        {summary?.income_cents > 0 && (
-          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '12px', margin: '8px 0 0', fontWeight: 500 }}>
-            {t('overview.savingsRate', { rate: Math.max(0, Math.round(((summary.income_cents - summary.expense_cents) / summary.income_cents) * 100)) })}
-          </p>
-        )}
+
+        {/* Monthly result subtitle */}
+        <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '12px', margin: '8px 0 0', fontWeight: 500 }}>
+          {monthLabel}: +{formatMoney(summary?.income_cents ?? 0, currency)} / −{formatMoney(summary?.expense_cents ?? 0, currency)}
+        </p>
+
+        {/* Opening balance inline edit */}
+        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {editingBalance ? (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>{t('overview.openingBalance')}:</span>
+              <input
+                type="number"
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') saveBalanceMutation.mutate(Math.round(parseFloat(editValue || '0') * 100))
+                  if (e.key === 'Escape') setEditingBalance(false)
+                }}
+                style={{ width: '100px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', padding: '3px 8px', color: 'white', fontSize: '12px', outline: 'none' }}
+                autoFocus
+              />
+              <button onClick={() => saveBalanceMutation.mutate(Math.round(parseFloat(editValue || '0') * 100))}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px', color: 'white', fontSize: '12px', padding: '3px 8px', cursor: 'pointer' }}>✓</button>
+              <button onClick={() => setEditingBalance(false)}
+                style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: '12px', padding: '3px 6px', cursor: 'pointer' }}>✕</button>
+            </>
+          ) : (
+            <button
+              onClick={() => { setEditValue(((rtData?.opening_balance_cents ?? 0) / 100).toFixed(2)); setEditingBalance(true) }}
+              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '11px', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              {t('overview.openingBalance')}: {formatMoney(rtData?.opening_balance_cents ?? 0, currency)} ✏️
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {/* Quick add buttons */}

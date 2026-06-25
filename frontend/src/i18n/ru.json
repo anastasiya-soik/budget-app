@@ -18,7 +18,12 @@
     "addIncome": "Доход",
     "addExpense": "Расход",
     "savingsRate": "Сохранено {{rate}}% дохода",
-    "avgExpense": "Ср. расходы: {{amount}} / мес"
+    "avgExpense": "Ср. расходы: {{amount}} / мес",
+    "runningTotal": "Текущий остаток",
+    "monthlyResult": "{{month}}: доходы {{income}}, расходы {{expense}}",
+    "openingBalance": "Нач. баланс",
+    "openingBalanceSaved": "Баланс сохранён",
+    "openingBalanceHint": "Сумма на счетах до начала учёта в приложении"
   },
   "transactions": {
     "title": "Транзакции",
