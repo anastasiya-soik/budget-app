@@ -114,7 +114,10 @@ async def _cmd_help(telegram_id: int) -> None:
         "Всё остальное доступно в приложении 💰"
     )
     if _is_admin(telegram_id):
-        text += "\n\n🔐 *Админ:*\n/admin — статистика по пользователям\n/broadcast <текст> — рассылка всем"
+        text += (
+            "\n\n🔐 *Админ:*\n/admin — статистика по пользователям"
+            "\n/broadcast <текст> — рассылка всем"
+        )
     await telegram_service.send_message(telegram_id, text, parse_mode="Markdown")
 
 
