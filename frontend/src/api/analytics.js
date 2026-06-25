@@ -28,6 +28,14 @@ const analyticsApi = {
     const { data } = await client.get('/analytics/filter-summary', { params: cleaned })
     return data
   },
+
+  filterBreakdown: async (params = {}) => {
+    const cleaned = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== '' && v != null)
+    )
+    const { data } = await client.get('/analytics/filter-breakdown', { params: cleaned })
+    return data
+  },
 }
 
 export default analyticsApi

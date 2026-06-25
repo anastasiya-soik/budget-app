@@ -358,6 +358,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const [clearMode, setClearMode] = useState('all')
   const [clearFrom, setClearFrom] = useState(firstOfMonth())
   const [clearTo, setClearTo] = useState(today())
+  const [showBreakdown, setShowBreakdown] = useState(false)
 
   // Open the add-transaction modal automatically when triggered from Overview quick-add
   useEffect(() => {
@@ -407,6 +408,18 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
       type: filters.type || undefined,
       search: filters.search.length >= 3 ? filters.search : undefined,
     }),
+  })
+
+  const { data: breakdownData } = useQuery({
+    queryKey: ['filter-breakdown', filters],
+    queryFn: () => analyticsApi.filterBreakdown({
+      date_from: filters.date_from || undefined,
+      date_to: filters.date_to || undefined,
+      category_id: filters.category_id || undefined,
+      type: filters.type || undefined,
+      search: filters.search.length >= 3 ? filters.search : undefined,
+    }),
+    enabled: showBreakdown,
   })
 
   const handleImportSuccess = () => {
@@ -525,17 +538,46 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
       </div>
 
       {filterSummary && (filterSummary.income_cents > 0 || filterSummary.expense_cents > 0) && (
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center', padding: '10px 16px', background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '12px', fontSize: '13px', flexWrap: 'wrap' }}>
-          {filterSummary.income_cents > 0 && (
-            <span style={{ color: '#10b981', fontWeight: 600 }}>⬆ +{formatMoney(filterSummary.income_cents, currency)}</span>
-          )}
-          {filterSummary.expense_cents > 0 && (
-            <span style={{ color: 'var(--amaranth)', fontWeight: 600 }}>⬇ −{formatMoney(filterSummary.expense_cents, currency)}</span>
-          )}
-          {filterSummary.income_cents > 0 && filterSummary.expense_cents > 0 && (
-            <span style={{ color: filterSummary.balance_cents >= 0 ? '#10b981' : 'var(--amaranth)', fontWeight: 600 }}>
-              = {filterSummary.balance_cents >= 0 ? '+' : '−'}{formatMoney(Math.abs(filterSummary.balance_cents), currency)}
+        <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div
+            style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', cursor: 'pointer', userSelect: 'none' }}
+            onClick={() => setShowBreakdown(v => !v)}
+          >
+            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {filterSummary.income_cents > 0 && (
+                <span style={{ color: '#10b981', fontWeight: 600, fontSize: '13px' }}>⬆ +{formatMoney(filterSummary.income_cents, currency)}</span>
+              )}
+              {filterSummary.expense_cents > 0 && (
+                <span style={{ color: 'var(--amaranth)', fontWeight: 600, fontSize: '13px' }}>⬇ −{formatMoney(filterSummary.expense_cents, currency)}</span>
+              )}
+              {filterSummary.income_cents > 0 && filterSummary.expense_cents > 0 && (
+                <span style={{ color: filterSummary.balance_cents >= 0 ? '#10b981' : 'var(--amaranth)', fontWeight: 600, fontSize: '13px' }}>
+                  = {filterSummary.balance_cents >= 0 ? '+' : '−'}{formatMoney(Math.abs(filterSummary.balance_cents), currency)}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              {showBreakdown ? '▲' : '▼ по категориям'}
             </span>
+          </div>
+
+          {showBreakdown && breakdownData?.items?.length > 0 && (
+            <div style={{ borderTop: '0.5px solid var(--border-card)', padding: '8px 0' }}>
+              {breakdownData.items.map(item => {
+                const total = filterSummary.expense_cents + filterSummary.income_cents || 1
+                const pct = Math.round((item.total_cents / total) * 100)
+                return (
+                  <div key={item.category_id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 14px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: item.color || '#808080', flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '4px' }}>{pct}%</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: item.type === 'income' ? '#10b981' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                      {item.type === 'income' ? '+' : '−'}{formatMoney(item.total_cents, currency)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
       )}
