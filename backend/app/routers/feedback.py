@@ -22,9 +22,18 @@ async def send_feedback(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    fb = Feedback(user_id=current_user.id, message=body.message)
+    fb = Feedback(
+        user_id=current_user.id,
+        message=body.message,
+        user_agent=body.user_agent,
+    )
     db.add(fb)
     await db.commit()
     await db.refresh(fb)
-    logger.info("Feedback from user %s: %s", current_user.id, body.message)
+    logger.info(
+        "Feedback from user %s (agent: %s): %s",
+        current_user.id,
+        body.user_agent or "unknown",
+        body.message,
+    )
     return fb
