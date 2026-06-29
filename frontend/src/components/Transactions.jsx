@@ -13,6 +13,7 @@ import { DateSelect } from './DateSelect'
 import { useScrollLock } from '../hooks/useScrollLock'
 import { SkeletonTransactions } from './ui/Skeleton'
 import { useToast } from '../hooks/useToast'
+import ImportPdfModal from './ImportPdfModal'
 
 const overlayStyle = { position: 'fixed', inset: 0, background: 'rgba(13,10,16,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '16px' }
 const cardStyle = { background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '460px', boxShadow: '0 8px 40px rgba(0,0,0,0.2)', maxHeight: 'calc(100dvh - 48px)', overflowY: 'auto' }
@@ -483,6 +484,7 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
   const [modal, setModal] = useState(null)
   const [mutError, setMutError] = useState('')
   const [showImport, setShowImport] = useState(false)
+  const [showImportPdf, setShowImportPdf] = useState(false)
   const [showRecurringModal, setShowRecurringModal] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -610,6 +612,13 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
           >
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m-4-4l4 4 4-4M4 20h16" /></svg>
             {t('transactions.import')}
+          </motion.div>
+          <motion.div whileTap={{ scale: 0.96 }}
+            onClick={() => setShowImportPdf(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'var(--surface)', border: '0.5px solid var(--border-card)', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, padding: '8px 12px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
+          >
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            PDF
           </motion.div>
           <motion.div whileTap={{ scale: 0.96 }} onClick={() => { setMutError(''); setModal({ tx: null }) }}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--amaranth-btn)', color: 'white', fontSize: '13px', fontWeight: 500, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', userSelect: 'none' }}
@@ -924,6 +933,12 @@ const Transactions = ({ quickAdd, onQuickAddConsumed }) => {
         {showImport && (
           <ImportCsvModal
             onClose={() => setShowImport(false)}
+            onSuccess={handleImportSuccess}
+          />
+        )}
+        {showImportPdf && (
+          <ImportPdfModal
+            onClose={() => setShowImportPdf(false)}
             onSuccess={handleImportSuccess}
           />
         )}

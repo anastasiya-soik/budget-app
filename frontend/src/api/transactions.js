@@ -43,6 +43,19 @@ const transactionsApi = {
     fd.append('mapping', JSON.stringify(mapping))
     return client.post('/transactions/import/confirm', fd).then(r => r.data)
   },
+
+  importPdfPreview: (file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return client.post('/transactions/import/pdf-preview', fd).then(r => r.data)
+  },
+
+  importPdfConfirm: (file, categoryId) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    if (categoryId) fd.append('category_id', categoryId)
+    return client.post('/transactions/import/pdf-confirm', fd).then(r => r.data)
+  },
 }
 
 export default transactionsApi
