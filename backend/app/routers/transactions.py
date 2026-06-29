@@ -21,7 +21,7 @@ from app.schemas.transaction import (
     TransactionOut,
     TransactionUpdate,
 )
-from app.services import budget_service, import_service, transaction_service
+from app.services import budget_service, import_service, pdf_service, transaction_service
 from app.services.category_service import create as create_category
 from app.services.category_service import get_all as get_all_categories
 
@@ -216,6 +216,86 @@ async def update_transaction(
         db=db,
     )
     return tx
+
+
+@router.post("/import/pdf-preview")
+@limiter.limit("10/minute")
+async def import_pdf_preview(
+    file: UploadFile = File(...),
+    request: Request = ...,
+    current_user: User = Depends(get_current_user),
+):
+    """Preview transactions parsed from PDF bank statement."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        return {"error": "File must be a PDF"}
+    if file.size and file.size > 5 * 1024 * 1024:
+        return {"error": "File must be smaller than 5 MB"}
+
+    content = await file.read()
+    result = pdf_service.parse_bank_statement(content)
+
+    if result.get("error"):
+        return {"error": result["error"]}
+
+    return {
+        "transactions": [
+            {
+                "date": tx["date"].isoformat(),
+                "amount": tx["amount"],
+                "description": tx["description"],
+            }
+            for tx in result.get("transactions", [])
+        ],
+        "parse_errors": result.get("parse_errors", 0),
+        "total_rows": len(result.get("transactions", [])),
+    }
+
+
+@router.post("/import/pdf-confirm")
+@limiter.limit("5/minute")
+async def import_pdf_confirm(
+    file: UploadFile = File(...),
+    category_id: uuid.UUID | None = Form(None),
+    request: Request = ...,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Import transactions from PDF bank statement."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        return {"error": "File must be a PDF"}
+    if file.size and file.size > 5 * 1024 * 1024:
+        return {"error": "File must be smaller than 5 MB"}
+
+    content = await file.read()
+    result = pdf_service.parse_bank_statement(content)
+
+    if result.get("error"):
+        return {"error": result["error"]}
+
+    transactions = result.get("transactions", [])
+    created = 0
+
+    for tx in transactions:
+        try:
+            await transaction_service.create(
+                user_id=current_user.id,
+                tx_date=tx["date"],
+                amount_cents=int(round(tx["amount"] * 100)),
+                category_id=category_id,
+                note=tx["description"] or None,
+                db=db,
+            )
+            created += 1
+        except Exception as e:
+            logger.warning(f"Failed to create tx from PDF: {e}")
+            continue
+
+    await db.commit()
+    return {
+        "ok": True,
+        "created": created,
+        "skipped": len(transactions) - created,
+    }
 
 
 @router.delete("/all")

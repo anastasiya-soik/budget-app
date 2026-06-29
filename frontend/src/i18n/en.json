@@ -106,7 +106,15 @@
     "startDate": "Start date",
     "nextDate": "next",
     "pause": "Pause",
-    "resume": "Resume"
+    "resume": "Resume",
+    "importPdfTitle1": "Import PDF — file",
+    "importPdfTitle2": "Import PDF — preview",
+    "importPdfHint": "Select a PDF file from your bank (max 5 MB).",
+    "importPdfChoose": "Tap to choose a .pdf file",
+    "importPdfSelectFile": "Please select a PDF file",
+    "importPdfFound": "Found {{count}} transactions. Review before importing:",
+    "importPdf": "Import from PDF",
+    "importPdfDone": "Imported {{created}} transactions!"
   },
   "goals": {
     "title": "Goals",
