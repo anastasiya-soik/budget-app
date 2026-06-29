@@ -25,6 +25,7 @@ def _make_user(new: bool = False):
     u.email = None
     u.telegram_id = _TG_ID
     u.currency = "BYN"
+    u.opening_balance_cents = 0
     u.password_hash = None
     u.created_at = datetime.now(timezone.utc)
     u.updated_at = datetime.now(timezone.utc)
@@ -83,6 +84,8 @@ def _stamp_user(obj):
             obj.updated_at = now
         if obj.currency is None:
             obj.currency = "BYN"
+        if obj.opening_balance_cents is None:
+            obj.opening_balance_cents = 0
 
 
 # ---------------------------------------------------------------------------

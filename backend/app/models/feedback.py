@@ -19,6 +19,7 @@ class Feedback(Base):
         nullable=False,
     )
     message: Mapped[str] = mapped_column(Text, nullable=False)
+    user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), default=datetime.utcnow
     )

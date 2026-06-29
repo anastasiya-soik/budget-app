@@ -106,7 +106,15 @@
     "clearModePeriod": "За период",
     "clearPeriodTitle": "Удалить транзакции за период?",
     "clearPeriodHint": "Будут удалены только транзакции за выбранный диапазон дат.",
-    "clearPeriodConfirmBtn": "Удалить за период"
+    "clearPeriodConfirmBtn": "Удалить за период",
+    "importPdfTitle1": "Импорт PDF — файл",
+    "importPdfTitle2": "Импорт PDF — превью",
+    "importPdfHint": "Выберите PDF выписку от банка (макс. 5 МБ).",
+    "importPdfChoose": "Нажмите, чтобы выбрать .pdf файл",
+    "importPdfSelectFile": "Выберите PDF файл",
+    "importPdfFound": "Найдено транзакций: {{count}}. Проверьте перед импортом:",
+    "importPdf": "Импортировать из PDF",
+    "importPdfDone": "Импортировано {{created}} транзакций!"
   },
   "goals": {
     "title": "Цели",

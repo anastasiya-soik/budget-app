@@ -23,6 +23,7 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
   const { t } = useTranslation()
   const { user } = useAuthStore()
   const currency = user?.currency || 'BYN'
+  const [importType, setImportType] = useState(null) // 'csv' | 'pdf' | null
   const [step, setStep] = useState(1)
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
@@ -45,7 +46,9 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
     setLoading(true)
     setError('')
     try {
-      const data = await transactionsApi.importPreview(file)
+      const data = importType === 'pdf'
+        ? await transactionsApi.importPdfPreview(file)
+        : await transactionsApi.importPreview(file)
       setPreview(data)
       setStep(2)
     } catch (e) {
@@ -59,7 +62,9 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
     setLoading(true)
     setError('')
     try {
-      const data = await transactionsApi.importConfirm(file, mapping)
+      const data = importType === 'pdf'
+        ? await transactionsApi.importPdfConfirm(file, null)
+        : await transactionsApi.importConfirm(file, mapping)
       setResult(data)
       setStep(3)
       onSuccess()
@@ -96,7 +101,10 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-            {step === 1 ? t('transactions.importTitle1') : step === 2 ? t('transactions.importTitle2') : t('transactions.importTitle3')}
+            {!importType ? 'Импорт' :
+             step === 1 ? (importType === 'pdf' ? t('transactions.importPdfTitle1') : t('transactions.importTitle1')) :
+             step === 2 ? (importType === 'pdf' ? t('transactions.importPdfTitle2') : t('transactions.importTitle2')) :
+             t('transactions.importTitle3')}
           </h3>
           <div style={{ display: 'flex', gap: '4px' }}>
             {[1, 2, 3].map(s => (
@@ -106,27 +114,50 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
         </div>
 
         <AnimatePresence mode="wait">
-        {step === 1 && (
+        {step === 1 && !importType && (
+          <motion.div key="typeselect" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+              Выберите формат файла для импорта:
+            </p>
+            <motion.div whileTap={{ scale: 0.96 }} onClick={() => setImportType('csv')}
+              style={{ border: '1px solid var(--border-card)', borderRadius: '12px', padding: '16px', cursor: 'pointer', background: 'var(--surface)' }}>
+              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>📊 CSV</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Импортируй таблицу с колонками: дата, сумма, категория</div>
+            </motion.div>
+            <motion.div whileTap={{ scale: 0.96 }} onClick={() => setImportType('pdf')}
+              style={{ border: '1px solid var(--border-card)', borderRadius: '12px', padding: '16px', cursor: 'pointer', background: 'var(--surface)' }}>
+              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>📄 PDF</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>PDF выписка от банка (автоматический парсинг таблиц)</div>
+            </motion.div>
+            <motion.div whileTap={{ scale: 0.97 }} onClick={onClose}
+              style={{ borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-card)', color: 'var(--text-primary)', background: 'var(--surface)', userSelect: 'none' }}>
+              {t('transactions.cancel')}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {step === 1 && importType && (
           <motion.div key="step1" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
             style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-              {t('transactions.importHint')}
+              {importType === 'pdf' ? t('transactions.importPdfHint') : t('transactions.importHint')}
             </p>
             <div
               style={{ border: '2px dashed var(--border-card)', borderRadius: '12px', padding: '32px 16px', textAlign: 'center', cursor: 'pointer' }}
               onClick={() => fileRef.current?.click()}
             >
-              <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={handleFileChange} />
+              <input ref={fileRef} type="file" accept={importType === 'pdf' ? '.pdf' : '.csv,text/csv'} style={{ display: 'none' }} onChange={handleFileChange} />
               {file
                 ? <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>{file.name}</span>
-                : <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{t('transactions.importChoose')}</span>
+                : <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{importType === 'pdf' ? t('transactions.importPdfChoose') : t('transactions.importChoose')}</span>
               }
             </div>
             {error && <div style={{ background: 'rgba(229,43,80,0.08)', border: '1px solid rgba(229,43,80,0.2)', color: '#E52B50', fontSize: '13px', borderRadius: '10px', padding: '10px 14px' }}>{error}</div>}
             <div style={{ display: 'flex', gap: '10px' }}>
-              <motion.div whileTap={{ scale: 0.97 }} onClick={onClose}
+              <motion.div whileTap={{ scale: 0.97 }} onClick={() => { setImportType(null); setFile(null); setError('') }}
                 style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 500, textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-card)', color: 'var(--text-primary)', background: 'var(--surface)', userSelect: 'none' }}>
-                {t('transactions.cancel')}
+                {t('transactions.back')}
               </motion.div>
               <motion.div whileTap={{ scale: 0.97 }} onClick={loading ? undefined : handlePreview}
                 style={{ flex: 1, borderRadius: '10px', padding: '11px', fontSize: '13px', fontWeight: 600, textAlign: 'center', cursor: loading ? 'not-allowed' : 'pointer', background: 'var(--amaranth-btn)', color: 'white', opacity: loading ? 0.7 : 1, userSelect: 'none' }}>
@@ -140,9 +171,9 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
           <motion.div key="step2" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.18 }}
             style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-              {t('transactions.importFound', { count: preview.total_rows })}
+              {importType === 'pdf' ? t('transactions.importPdfFound', { count: preview.transactions?.length || 0 }) : t('transactions.importFound', { count: preview.total_rows })}
             </p>
-            {[
+            {importType === 'csv' && [
               { label: t('transactions.importDateCol'), key: 'date_col', required: true },
               { label: t('transactions.importAmountCol'), key: 'amount_col', required: true },
               { label: t('transactions.importCategoryCol'), key: 'category_col', required: false },
@@ -161,16 +192,33 @@ const ImportCsvModal = ({ onClose, onSuccess }) => {
                 </select>
               </div>
             ))}
-            {preview.rows.length > 0 && (
+            {(importType === 'csv' ? preview.rows?.length : preview.transactions?.length) > 0 && (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', color: 'var(--text-secondary)' }}>
                   <thead>
-                    <tr>{preview.headers.map((h, i) => <th key={i} style={{ padding: '4px 8px', borderBottom: '1px solid var(--border-card)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
+                    <tr>
+                      {importType === 'csv' ? preview.headers.map((h, i) => <th key={i} style={{ padding: '4px 8px', borderBottom: '1px solid var(--border-card)', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>) :
+                      <>
+                        <th style={{ padding: '4px 8px', borderBottom: '1px solid var(--border-card)', textAlign: 'left', whiteSpace: 'nowrap' }}>Дата</th>
+                        <th style={{ padding: '4px 8px', borderBottom: '1px solid var(--border-card)', textAlign: 'right', whiteSpace: 'nowrap' }}>Сумма</th>
+                        <th style={{ padding: '4px 8px', borderBottom: '1px solid var(--border-card)', textAlign: 'left', whiteSpace: 'nowrap' }}>Описание</th>
+                      </>
+                      }
+                    </tr>
                   </thead>
                   <tbody>
-                    {preview.rows.slice(0, 3).map((row, ri) => (
-                      <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '4px 8px', borderBottom: '1px solid var(--tx-border)', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell}</td>)}</tr>
-                    ))}
+                    {importType === 'csv' ?
+                      preview.rows.slice(0, 3).map((row, ri) => (
+                        <tr key={ri}>{row.map((cell, ci) => <td key={ci} style={{ padding: '4px 8px', borderBottom: '1px solid var(--tx-border)', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell}</td>)}</tr>
+                      )) :
+                      preview.transactions.slice(0, 5).map((tx, i) => (
+                        <tr key={i}>
+                          <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--tx-border)', whiteSpace: 'nowrap' }}>{tx.date}</td>
+                          <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--tx-border)', textAlign: 'right', whiteSpace: 'nowrap' }}>{tx.amount.toFixed(2)}</td>
+                          <td style={{ padding: '4px 8px', borderBottom: '1px solid var(--tx-border)', whiteSpace: 'nowrap', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tx.description}</td>
+                        </tr>
+                      ))
+                    }
                   </tbody>
                 </table>
               </div>
@@ -355,6 +403,10 @@ const TransactionModal = ({ transaction, categories, onSave, onClose, loading, e
     const amountCents = Math.round(parseFloat(amount) * 100)
     if (!amountCents || amountCents <= 0 || !txDate) {
       setLocalError(t('transactions.fillRequired'))
+      return
+    }
+    if (!categoryId) {
+      setLocalError(t('transactions.selectCategory'))
       return
     }
     setLocalError('')
