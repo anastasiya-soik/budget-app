@@ -1,13 +1,16 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.dependencies import get_current_user, get_db
 from app.limiter import limiter
 from app.models.feedback import Feedback
 from app.models.user import User
 from app.schemas.feedback import FeedbackCreate, FeedbackOut
+from app.services.telegram_service import send_message
 
 logger = logging.getLogger(__name__)
 
@@ -36,4 +39,11 @@ async def send_feedback(
         body.user_agent or "unknown",
         body.message,
     )
+
+    # Send to Telegram if admin is configured
+    if settings.ADMIN_TELEGRAM_ID:
+        email = current_user.email or f"tg:{current_user.telegram_id}" if current_user.telegram_id else "unknown"
+        msg = f"📨 Feedback from {email}\n\n{body.message}\n\n📱 {body.user_agent or 'unknown device'}"
+        asyncio.create_task(send_message(settings.ADMIN_TELEGRAM_ID, msg))
+
     return fb
