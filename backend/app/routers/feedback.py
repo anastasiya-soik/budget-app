@@ -42,8 +42,12 @@ async def send_feedback(
 
     # Send to Telegram if admin is configured
     if settings.ADMIN_TELEGRAM_ID:
-        email = current_user.email or f"tg:{current_user.telegram_id}" if current_user.telegram_id else "unknown"
-        msg = f"📨 Feedback from {email}\n\n{body.message}\n\n📱 {body.user_agent or 'unknown device'}"
+        if current_user.telegram_id:
+            email = current_user.email or f"tg:{current_user.telegram_id}"
+        else:
+            email = current_user.email or "unknown"
+        device = body.user_agent or "unknown device"
+        msg = f"📨 Feedback from {email}\n\n{body.message}\n\n📱 {device}"
         asyncio.create_task(send_message(settings.ADMIN_TELEGRAM_ID, msg))
 
     return fb

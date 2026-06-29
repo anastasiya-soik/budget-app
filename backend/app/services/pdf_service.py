@@ -1,5 +1,4 @@
 import io
-import re
 from datetime import datetime
 from typing import Optional
 
@@ -74,8 +73,12 @@ def parse_bank_statement(file_content: bytes) -> dict:
                     desc_col = None
 
                     date_keywords = ["date", "дата", "день", "when"]
-                    amount_keywords = ["amount", "sum", "сумма", "сумме", "debit", "credit"]
-                    desc_keywords = ["description", "desc", "detail", "memo", "описание", "назначение"]
+                    amount_keywords = [
+                        "amount", "sum", "сумма", "сумме", "debit", "credit"
+                    ]
+                    desc_keywords = [
+                        "description", "desc", "detail", "memo", "описание", "назначение"
+                    ]
 
                     for idx, col in enumerate(header_lower):
                         for kw in date_keywords:
@@ -97,9 +100,17 @@ def parse_bank_statement(file_content: bytes) -> dict:
                             if not row:
                                 continue
                             try:
-                                date_val = row[date_col] if date_col < len(row) else None
-                                amount_val = row[amount_col] if amount_col < len(row) else None
-                                desc_val = row[desc_col] if desc_col and desc_col < len(row) else None
+                                date_val = (
+                                    row[date_col] if date_col < len(row) else None
+                                )
+                                amount_val = (
+                                    row[amount_col] if amount_col < len(row) else None
+                                )
+                                desc_val = (
+                                    row[desc_col]
+                                    if desc_col and desc_col < len(row)
+                                    else None
+                                )
 
                                 parsed_date = _parse_date(str(date_val))
                                 parsed_amount = _parse_amount(str(amount_val))
