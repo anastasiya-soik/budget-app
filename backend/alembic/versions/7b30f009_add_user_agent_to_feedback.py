@@ -1,6 +1,6 @@
 """Add user_agent to feedback table.
 
-Revision ID: 7b30f009_add_user_agent_to_feedback
+Revision ID: 7b30f009
 Revises: 7b30f008
 Create Date: 2026-06-25 20:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "7b30f009_add_user_agent_to_feedback"
+revision = "7b30f009"
 down_revision = "7b30f008"
 branch_labels = None
 depends_on = None
