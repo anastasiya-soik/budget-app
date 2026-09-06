@@ -1,0 +1,56 @@
+name: Security Watch
+
+# Dependabot only opens a PR for a vulnerable dependency — an alert that
+# never becomes a PR (or one nobody merges) can sit invisible. This job
+# polls open Dependabot alerts on a schedule, independent of any PR/push,
+# and pings Telegram when a CRITICAL/HIGH one is outstanding.
+on:
+  schedule:
+    - cron: '0 7 * * 1' # every Monday, 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: read
+
+jobs:
+  dependabot-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check open critical/high Dependabot alerts
+        id: alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          alerts=$(gh api "repos/${{ github.repository }}/dependabot/alerts" \
+            --paginate \
+            --jq '[.[] | select(.state == "open" and (.security_advisory.severity == "critical" or .security_advisory.severity == "high"))]' \
+            2>/dev/null || echo '[]')
+          count=$(echo "$alerts" | jq 'length')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          summary=$(echo "$alerts" | jq -r '.[] | "• [\(.security_advisory.severity | ascii_upcase)] \(.dependency.package.name): \(.security_advisory.summary)"' | head -c 3000)
+          {
+            echo "summary<<EOF"
+            echo "$summary"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Notify Telegram
+        if: steps.alerts.outputs.count != '0'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
+          COUNT: ${{ steps.alerts.outputs.count }}
+          SUMMARY: ${{ steps.alerts.outputs.summary }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$ADMIN_TELEGRAM_ID" ]; then
+            echo "::warning::BOT_TOKEN / ADMIN_TELEGRAM_ID secrets are not set — skipping Telegram alert."
+            exit 0
+          fi
+          TEXT=$(printf '⚠️ *Dependabot*: %s открытых critical/high уязвимостей в %s\n%s\n\nhttps://github.com/%s/security/dependabot' \
+            "$COUNT" "${{ github.repository }}" "$SUMMARY" "${{ github.repository }}")
+          curl -sS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${ADMIN_TELEGRAM_ID}" \
+            --data-urlencode "text=${TEXT}" \
+            --data-urlencode "parse_mode=Markdown"
