@@ -1,129 +1,162 @@
-# 🐱 purrse — умный трекер финансов
+# 🐱 purrse — Finance Tracker
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
-![React](https://img.shields.io/badge/React-18-61DAFB)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791)
-![Deployed](https://img.shields.io/badge/Deployed-Railway-purple)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+Track expenses by category, set goals, plan budget. Web app + Telegram Mini App.
 
-> Отслеживай доходы и расходы по категориям, ставь цели накоплений и планируй бюджет.
-> Доступно как веб-приложение и Telegram Mini App.
-
-**Приложение:** [budgetapp-production-a39a.up.railway.app](https://budgetapp-production-a39a.up.railway.app) · **Бот:** [@simple_budget_app_bot](https://t.me/simple_budget_app_bot/purrse)
+[App](https://budgetapp-production-a39a.up.railway.app) · [Bot](https://t.me/simple_budget_app_bot/purrse)
 
 ---
 
-## Возможности
+## What It Does
 
-- **Транзакции** — добавление доходов/расходов по категориям, дате и заметке; подтверждение удаления; полнотекстовый поиск
-- **Категории** — кастомные категории с цветами; до 50 на пользователя
-- **Аналитика** — итоги за месяц, savings rate, средние расходы за 3 мес, круговая диаграмма, тренд за 6 месяцев
-- **Бюджет** — лимиты по категориям; навигация по месяцам ← →; уведомление в Telegram при 80%
-- **Цели накоплений** — прогресс с расчётом месяцев до достижения
-- **Повторяющиеся транзакции** — еженедельные / ежемесячные / ежегодные; пауза и возобновление
-- **Импорт / экспорт CSV** — превью с маппингом колонок перед импортом; экспорт с фильтрами по датам
-- **Telegram-бот** — `/stats` — моментальная статистика за месяц; дайджест 1-го числа; алерты бюджета
-- **GDPR** — полный экспорт данных в JSON; удаление аккаунта с каскадом
-- **Двуязычность** — EN / RU, dark / light mode
-
----
-
-## Стек
-
-| Слой | Технологии |
-|---|---|
-| Frontend | React 18, Vite 5, React Query 5, Zustand 4, Framer Motion, Recharts, Tailwind CSS 3 |
-| Backend | FastAPI 0.115, SQLAlchemy 2 (async), PostgreSQL 16, Alembic, Pydantic v2 |
-| Авторизация | JWT HS256 (15 мин) + httpOnly refresh cookie (30 дней), bcrypt, Telegram initData HMAC |
-| Инфраструктура | Railway (backend + frontend + PostgreSQL + Redis), Docker multi-stage, GitHub Actions CI |
-| Мониторинг | Sentry, структурированные логи |
-| Безопасность | OWASP Top 10, Bandit SAST, Trivy scan, rate limiting через slowapi + Redis |
+- Add/search transactions by category, date, note
+- Custom categories with colors (up to 50)
+- Monthly summary, 6-month trends, pie charts
+- Budget limits with Telegram alerts at 80%
+- Savings goals with month-to-completion forecast
+- Recurring transactions (weekly/monthly/yearly)
+- CSV export with date filters
+- Telegram bot for quick stats
+- Dark/light mode, English/Russian
 
 ---
 
-## Архитектура
+## Tech
 
-```
-Telegram Bot / Браузер
-        │
-        ▼
-  FastAPI (Railway)
-   ├── /auth           — JWT + refresh токены
-   ├── /transactions
-   ├── /categories
-   ├── /analytics
-   ├── /budgets
-   ├── /goals
-   ├── /recurring
-   └── /bot/webhook    — Telegram обновления
-        │
-   PostgreSQL (Railway) + Redis (rate limits)
-```
-
-- Деньги хранятся как **целые числа в центах** — никаких ошибок округления float
-- Все запросы фильтруются по `current_user.id` — broken access control невозможен
-- Cursor-based пагинация (без OFFSET)
-- APScheduler cron: повторяющиеся транзакции ежедневно, Telegram-дайджест 1-го числа
+**Frontend:** React 18, Vite, React Query, Zustand, Tailwind  
+**Backend:** FastAPI, SQLAlchemy 2 (async), PostgreSQL, Redis  
+**Deploy:** Railway (auto-deploy on main)  
+**Security:** JWT + refresh tokens, Bandit SAST, 70%+ test coverage
 
 ---
 
-## Запуск локально
+## Setup
 
 ```bash
 # Backend
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
-cp .env.example .env   # заполни DATABASE_URL, JWT_SECRET, BOT_TOKEN, FRONTEND_URL
+cp .env.example .env
 alembic upgrade head
 uvicorn app.main:app --reload
 
 # Frontend
 cd frontend
-npm install
-npm run dev
+npm install && npm run dev
 
-# Тесты
-cd backend && pytest --cov=app --cov-report=term-missing   # 110 тестов, покрытие 93.7%
-cd frontend && npm test                                     # 60 тестов
-
-# Сканирование безопасности
-bandit -r app -ll
+# Test
+cd backend && pytest --cov=app
+cd frontend && npm test
 ```
 
 ---
 
 ## CI/CD
 
-Каждый PR проходит: **Ruff** → **Bandit** → **pytest ≥ 70% покрытия** → **ESLint** → **Vite build** → **vitest** → **Docker build** → **Trivy scan**
+PR checks: Ruff → Bandit → pytest (70%+) → ESLint → Vite → vitest → Docker → Trivy
 
-Находки HIGH severity блокируют мерж. При мерже в `main` Railway деплоит автоматически.
-
----
-
-## Переменные окружения
-
-| Переменная | Описание |
-|---|---|
-| `DATABASE_URL` | `postgresql+asyncpg://...` |
-| `JWT_SECRET` | 64-символьный hex (`openssl rand -hex 32`) |
-| `BOT_TOKEN` | Токен от BotFather |
-| `FRONTEND_URL` | CORS origin + URL для Telegram WebApp |
-| `BACKEND_URL` | Для авторегистрации вебхука Telegram |
-| `REDIS_URL` | Redis для хранения rate-limit счётчиков (опционально, fallback в память) |
-| `SENTRY_DSN` | Трекинг ошибок |
+HIGH severity blocks merge. Auto-deploy to Railway on merge.
 
 ---
 
-## Об авторе
+## Env Vars
 
-Я проджект-менеджер, которая увлеклась разработкой и AI — делаю pet-проекты для себя в формате vibe coding: придумываю идею, итерирую с AI и смотрю, что получается.
-
-purrse — один из таких проектов, другой — [just do it](https://github.com/anastasiya-soik/just_do_it_bot), Telegram-бот для отказа от вредных привычек. Если форкаешь — звёздочку в карму :)
+```
+DATABASE_URL=postgresql+asyncpg://...
+JWT_SECRET=<64-char-hex>
+BOT_TOKEN=<from-botfather>
+FRONTEND_URL=<cors-origin>
+SENTRY_DSN=<optional>
+REDIS_URL=<optional>
+```
 
 ---
 
-## Лицензия
+## About
 
-MIT
+Testing product ideas on real code. This is one of them. Star if you fork it! ⭐
+
+License: MIT
+
+---
+---
+
+# 🐱 purrse — Трекер финансов
+
+Отслеживай расходы по категориям, ставь цели, плани бюджет. Веб + Telegram Mini App.
+
+[Приложение](https://budgetapp-production-a39a.up.railway.app) · [Бот](https://t.me/simple_budget_app_bot/purrse)
+
+---
+
+## Что умеет
+
+- Добавлять/искать транзакции по категориям, дате, заметкам
+- Кастомные категории с цветами (до 50)
+- Итоги за месяц, тренды за 6 месяцев, графики
+- Лимиты на категории с алертами в Telegram (80%)
+- Цели накоплений с прогнозом месяцев до достижения
+- Повторяющиеся транзакции (еженедельные/ежемесячные/ежегодные)
+- Экспорт в CSV с фильтром по датам
+- Telegram бот для быстрой статистики
+- Dark/light mode, English/Russian
+
+---
+
+## Стек
+
+**Frontend:** React 18, Vite, React Query, Zustand, Tailwind  
+**Backend:** FastAPI, SQLAlchemy 2 (async), PostgreSQL, Redis  
+**Деплой:** Railway (auto-deploy из main)  
+**Безопасность:** JWT + refresh токены, Bandit SAST, 70%+ покрытие тестами
+
+---
+
+## Запуск
+
+```bash
+# Backend
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+cp .env.example .env
+alembic upgrade head
+uvicorn app.main:app --reload
+
+# Frontend
+cd frontend
+npm install && npm run dev
+
+# Тесты
+cd backend && pytest --cov=app
+cd frontend && npm test
+```
+
+---
+
+## CI/CD
+
+Checks: Ruff → Bandit → pytest (70%+) → ESLint → Vite → vitest → Docker → Trivy
+
+HIGH severity блокирует мерж. Auto-deploy в Railway при мерже.
+
+---
+
+## Переменные
+
+```
+DATABASE_URL=postgresql+asyncpg://...
+JWT_SECRET=<64-char-hex>
+BOT_TOKEN=<от-botfather>
+FRONTEND_URL=<cors-origin>
+SENTRY_DSN=<опционально>
+REDIS_URL=<опционально>
+```
+
+---
+
+## О проекте
+
+Тестирую продуктовые идеи на реальном коде. Это одна из них. Звёздочку если форкаешь! ⭐
+
+Лицензия: MIT
