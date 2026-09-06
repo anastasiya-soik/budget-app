@@ -296,9 +296,14 @@ async def test_analytics_categories_empty():
 
 @pytest.mark.asyncio
 async def test_analytics_trend():
+    # Target the current month rather than a hardcoded one — the endpoint's
+    # `months=3` window is relative to `datetime.now()`, so a fixed month
+    # (e.g. "2026-05") eventually falls outside it and the test goes flaky.
+    target = datetime.now(timezone.utc).date().replace(day=1)
+
     row = MagicMock()
-    row.year = 2026
-    row.month = 5
+    row.year = target.year
+    row.month = target.month
     row.type = "income"
     row.total = 100000
 
@@ -312,11 +317,12 @@ async def test_analytics_trend():
     assert response.status_code == 200
     items = response.json()["items"]
     assert len(items) == 3
-    # oldest first — check May 2026 has the income
-    may = next((i for i in items if i["month"] == "2026-05"), None)
-    assert may is not None
-    assert may["income_cents"] == 100000
-    assert may["expense_cents"] == 0
+    # oldest first — check the current month has the income
+    target_key = f"{target.year:04d}-{target.month:02d}"
+    hit = next((i for i in items if i["month"] == target_key), None)
+    assert hit is not None
+    assert hit["income_cents"] == 100000
+    assert hit["expense_cents"] == 0
 
 
 @pytest.mark.asyncio
