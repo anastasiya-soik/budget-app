@@ -1,5 +1,12 @@
 # 🐱 purrse — умный трекер финансов
 
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![React](https://img.shields.io/badge/React-18-61DAFB)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791)
+![Deployed](https://img.shields.io/badge/Deployed-Railway-purple)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
+
 > Отслеживай доходы и расходы по категориям, ставь цели накоплений и планируй бюджет.
 > Доступно как веб-приложение и Telegram Mini App.
 
@@ -113,7 +120,7 @@ bandit -r app -ll
 
 Я проджект-менеджер, которая увлеклась разработкой и AI — делаю pet-проекты для себя в формате vibe coding: придумываю идею, итерирую с AI и смотрю, что получается.
 
-purrse — один из таких проектов. Если форкаешь — звёздочку в карму :)
+purrse — один из таких проектов, другой — [just do it](https://github.com/anastasiya-soik/just_do_it_bot), Telegram-бот для отказа от вредных привычек. Если форкаешь — звёздочку в карму :)
 
 ---
 
