@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 _dsn = settings.SENTRY_DSN
 if _dsn and _dsn.startswith("https://") and "/" in _dsn.split("@")[-1]:
-    sentry_sdk.init(dsn=_dsn, traces_sample_rate=0.2)
+    sentry_sdk.init(dsn=_dsn, traces_sample_rate=0.2, environment="production")
 
 scheduler = AsyncIOScheduler()
 
@@ -89,6 +89,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     """Return JSON 500 with CORS headers so browsers surface the error
     instead of a generic Network Error (default 500 bypasses CORSMiddleware)."""
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    # Explicit capture: this handler intercepts the exception before it can
+    # bubble up, so we can't rely on Sentry's auto-instrumentation to see it.
+    # capture_exception() is a no-op if sentry_sdk.init() was never called
+    # (no SENTRY_DSN configured), so this is safe in dev/tests too.
+    sentry_sdk.capture_exception(exc)
     headers = {}
     origin = request.headers.get("origin")
     if origin and origin in settings.ALLOWED_ORIGINS:
