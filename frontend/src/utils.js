@@ -26,6 +26,13 @@ export const formatDate = (dateStr) => {
 }
 
 export const currentMonth = () => new Date().toISOString().slice(0, 7)
+
+// Add/subtract whole months from a 'YYYY-MM' string, returning 'YYYY-MM'.
+export const shiftMonth = (monthStr, delta) => {
+  const [year, month] = monthStr.split('-').map(Number)
+  const d = new Date(Date.UTC(year, month - 1 + delta, 1))
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
 export const today = () => new Date().toISOString().slice(0, 10)
 export const firstOfMonth = () => {
   const d = new Date()

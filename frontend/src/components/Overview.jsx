@@ -4,12 +4,11 @@ import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
-  BarChart, Bar, XAxis, YAxis,
 } from 'recharts'
 import analyticsApi from '../api/analytics'
 import authApi from '../api/auth'
 import useAuthStore from '../store/authStore'
-import { formatMoney, currentMonth } from '../utils'
+import { formatMoney, currentMonth, shiftMonth } from '../utils'
 import { SkeletonOverview } from './ui/Skeleton'
 import { useToast } from '../hooks/useToast'
 
@@ -38,7 +37,14 @@ const Overview = ({ onQuickAdd }) => {
   const showToast = useToast()
   const currency = user?.currency || 'USD'
   const month = currentMonth()
-  const [trendPeriod, setTrendPeriod] = useState(6)
+  // Month shown in the "spending by category" pie chart — independently
+  // navigable, capped so it can never go past the current month.
+  const [selectedMonth, setSelectedMonth] = useState(month)
+  const isCurrentMonthSelected = selectedMonth >= currentMonth()
+  const goPrevMonth = () => setSelectedMonth((m) => shiftMonth(m, -1))
+  const goNextMonth = () => setSelectedMonth((m) => (m >= currentMonth() ? m : shiftMonth(m, 1)))
+  const goToday = () => setSelectedMonth(currentMonth())
+
   const [editingBalance, setEditingBalance] = useState(false)
   const [editValue, setEditValue] = useState('')
   const queryClient = useQueryClient()
@@ -48,14 +54,20 @@ const Overview = ({ onQuickAdd }) => {
     queryFn: () => analyticsApi.summary(month),
   })
 
-  const { data: catData, isLoading: catLoading } = useQuery({
-    queryKey: ['analytics', 'categories', month],
-    queryFn: () => analyticsApi.categories(month),
+  const { data: monthSummary, isLoading: monthSumLoading } = useQuery({
+    queryKey: ['analytics', 'summary', selectedMonth],
+    queryFn: () => analyticsApi.summary(selectedMonth),
   })
 
+  const { data: catData, isLoading: catLoading } = useQuery({
+    queryKey: ['analytics', 'categories', selectedMonth],
+    queryFn: () => analyticsApi.categories(selectedMonth),
+  })
+
+  // Fixed 6-month lookback, used only for the "avg. expense" subtitle below.
   const { data: trendData, isLoading: trendLoading } = useQuery({
-    queryKey: ['analytics', 'trend', trendPeriod],
-    queryFn: () => analyticsApi.trend(trendPeriod),
+    queryKey: ['analytics', 'trend', 6],
+    queryFn: () => analyticsApi.trend(6),
   })
 
   const { data: rtData } = useQuery({
@@ -88,22 +100,19 @@ const Overview = ({ onQuickAdd }) => {
     animate(expenseMV, summary?.expense_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
   }, [summary?.income_cents, summary?.expense_cents])
 
-  const incomeLabel = t('overview.income')
-  const expenseLabel = t('overview.expenses')
-
-  const trendItems = (trendData?.items || []).map((item) => ({
-    month: item.month,
-    [incomeLabel]: item.income_cents,
-    [expenseLabel]: item.expense_cents,
-  }))
-
   const pieItems = catData?.items || []
 
-  if (sumLoading && catLoading && trendLoading) {
+  if (sumLoading && catLoading && monthSumLoading && trendLoading) {
     return <SkeletonOverview />
   }
 
   const monthLabel = new Date().toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long' })
+  const selectedMonthLabel = (() => {
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return new Date(Date.UTC(y, m - 1, 1)).toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', {
+      month: 'long', year: 'numeric', timeZone: 'UTC',
+    })
+  })()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -214,84 +223,70 @@ const Overview = ({ onQuickAdd }) => {
         </motion.div>
       </div>
 
-      {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-        <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible"
-          style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '20px' }}
-        >
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', marginTop: 0 }}>{t('overview.spendingByCategory')}</h3>
-          {pieItems.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', fontSize: '13px', color: 'var(--text-muted)' }}>
-              {t('overview.noExpenseData')}
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={pieItems} dataKey="total_cents" nameKey="name"
-                  cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
-                  label={renderPieLabel}
-                  labelLine={false}
-                >
-                  {pieItems.map((entry, i) => (
-                    <Cell key={entry.category_id || i} fill={entry.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => [formatMoney(v, currency), '']} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{v}</span>} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </motion.div>
-
-        <motion.div custom={4} variants={cardVariants} initial="hidden" animate="visible"
-          style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '20px' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.monthlyTrend', { n: trendPeriod })}</h3>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {[
-                { label: '1M', months: 1 },
-                { label: '6M', months: 6 },
-                { label: '1Y', months: 12 },
-              ].map(({ label, months }) => (
-                <button
-                  key={label}
-                  onClick={() => setTrendPeriod(months)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: trendPeriod === months ? 'var(--amaranth-btn)' : 'var(--bg)',
-                    color: trendPeriod === months ? 'white' : 'var(--text-muted)',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+      {/* Monthly analytics — navigable spending-by-category pie chart */}
+      <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible"
+        style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '20px' }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.spendingByCategory')}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={goPrevMonth}
+              style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer', background: 'var(--bg)', color: 'var(--text-muted)' }}
+            >
+              {t('overview.prevMonth')}
+            </button>
+            <button
+              onClick={goToday}
+              disabled={isCurrentMonthSelected}
+              style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--bg)', color: 'var(--text-muted)', opacity: isCurrentMonthSelected ? 0.4 : 1, cursor: isCurrentMonthSelected ? 'default' : 'pointer' }}
+            >
+              {t('overview.todayMonth')}
+            </button>
+            <button
+              onClick={goNextMonth}
+              disabled={isCurrentMonthSelected}
+              style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--bg)', color: 'var(--text-muted)', opacity: isCurrentMonthSelected ? 0.4 : 1, cursor: isCurrentMonthSelected ? 'default' : 'pointer' }}
+            >
+              {t('overview.nextMonth')}
+            </button>
           </div>
-          {trendItems.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', fontSize: '13px', color: 'var(--text-muted)' }}>
-              {t('overview.noTrendData')}
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={trendItems} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} barGap={2} barCategoryGap="30%">
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => formatMoney(v, currency).replace(/\.00$/, '')} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} width={70} />
-                <Tooltip formatter={(v, name) => [formatMoney(v, currency), name]} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{v}</span>} />
-                <Bar dataKey={incomeLabel} fill="#64A0FF" radius={[4, 4, 0, 0]} />
-                <Bar dataKey={expenseLabel} fill="#E52B50" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </motion.div>
-      </div>
+        </div>
+
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 12px', textTransform: 'capitalize' }}>{selectedMonthLabel}</p>
+
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            {t('overview.income')}: <strong style={{ color: 'var(--text-primary)' }}>{formatMoney(monthSummary?.income_cents ?? 0, currency)}</strong>
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            {t('overview.expenses')}: <strong style={{ color: 'var(--text-primary)' }}>{formatMoney(monthSummary?.expense_cents ?? 0, currency)}</strong>
+          </span>
+        </div>
+
+        {pieItems.length === 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', fontSize: '13px', color: 'var(--text-muted)' }}>
+            {t('overview.noExpenseData')}
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie
+                data={pieItems} dataKey="total_cents" nameKey="name"
+                cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
+                label={renderPieLabel}
+                labelLine={false}
+              >
+                {pieItems.map((entry, i) => (
+                  <Cell key={entry.category_id || i} fill={entry.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v) => [formatMoney(v, currency), '']} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
+              <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{v}</span>} />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </motion.div>
     </div>
   )
 }
