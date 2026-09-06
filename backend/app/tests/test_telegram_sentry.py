@@ -236,3 +236,38 @@ def test_sentry_sdk_callable():
     with patch.object(sentry_sdk, "capture_exception") as mock_cap:
         sentry_sdk.capture_exception(RuntimeError("test"))
         mock_cap.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_unhandled_exception_reported_to_sentry():
+    """
+    A 500-raising route must be reported via sentry_sdk.capture_exception
+    from app.main's own exception handler — not merely by relying on
+    Sentry's ASGI auto-instrumentation, which a custom `Exception` handler
+    can shadow. This is what actually lands the error in the Sentry dashboard.
+    """
+    import sentry_sdk
+
+    from app.main import app
+
+    @app.get("/__boom-test")
+    async def _boom():
+        raise RuntimeError("boom")
+
+    # raise_app_exceptions=False: Starlette's ServerErrorMiddleware re-raises
+    # after sending the response (so a real server can log it) — the test
+    # transport must not propagate that as a Python exception here.
+    with patch.object(sentry_sdk, "capture_exception") as mock_cap:
+        async with AsyncClient(
+            transport=ASGITransport(app=app, raise_app_exceptions=False),
+            base_url="http://localhost",
+        ) as c:
+            response = await c.get("/__boom-test")
+
+    app.router.routes = [r for r in app.router.routes if getattr(r, "path", None) != "/__boom-test"]
+
+    assert response.status_code == 500
+    assert mock_cap.call_count == 1
+    (reported_exc,), _ = mock_cap.call_args
+    assert isinstance(reported_exc, RuntimeError)
+    assert str(reported_exc) == "boom"
