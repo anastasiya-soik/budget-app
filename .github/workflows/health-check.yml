@@ -1,9 +1,9 @@
 name: Production Health Check
 
-# Pings prod on a schedule and alerts Telegram when it's down. This is
-# separate from Sentry (which only sees errors *inside* a running app) —
-# this catches the app not responding at all (crash loop, bad deploy,
-# Railway outage, DNS/TLS issues).
+# Pings prod on a schedule. This is separate from Sentry (which only sees
+# errors *inside* a running app) — this catches the app not responding at
+# all (crash loop, bad deploy, Railway outage, DNS/TLS issues). If a check
+# fails, the job fails and logs the details.
 on:
   schedule:
     - cron: '*/15 * * * *'
@@ -15,61 +15,29 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check backend /health
-        id: backend
         run: |
           url="${{ vars.PROD_BACKEND_URL || 'https://api.budget-app.up.railway.app' }}/health"
           for i in 1 2 3; do
-            code=$(curl -sS -o /tmp/backend_body -w '%{http_code}' --max-time 10 "$url" || echo "000")
+            code=$(curl -sS -o /tmp/backend_body -w '%{http_code}' --max-time 10 "$url" 2>/dev/null || echo "000")
             if [ "$code" = "200" ] && grep -q '"status":\s*"ok"' /tmp/backend_body 2>/dev/null; then
-              echo "ok=true" >> "$GITHUB_OUTPUT"
+              echo "✅ Backend OK ($url)"
               exit 0
             fi
-            sleep 10
+            [ $i -lt 3 ] && sleep 10
           done
-          echo "ok=false" >> "$GITHUB_OUTPUT"
-          echo "detail=HTTP ${code} from ${url}" >> "$GITHUB_OUTPUT"
+          echo "❌ Backend unhealthy: HTTP $code from $url"
+          exit 1
 
       - name: Check frontend /
-        id: frontend
         run: |
           url="${{ vars.PROD_FRONTEND_URL || 'https://budget-app.up.railway.app' }}/"
           for i in 1 2 3; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$url" || echo "000")
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$url" 2>/dev/null || echo "000")
             if [ "$code" = "200" ]; then
-              echo "ok=true" >> "$GITHUB_OUTPUT"
+              echo "✅ Frontend OK ($url)"
               exit 0
             fi
-            sleep 10
+            [ $i -lt 3 ] && sleep 10
           done
-          echo "ok=false" >> "$GITHUB_OUTPUT"
-          echo "detail=HTTP ${code} from ${url}" >> "$GITHUB_OUTPUT"
-
-      - name: Notify Telegram
-        if: always() && (steps.backend.outputs.ok == 'false' || steps.frontend.outputs.ok == 'false')
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
-          BACKEND_OK: ${{ steps.backend.outputs.ok }}
-          BACKEND_DETAIL: ${{ steps.backend.outputs.detail }}
-          FRONTEND_OK: ${{ steps.frontend.outputs.ok }}
-          FRONTEND_DETAIL: ${{ steps.frontend.outputs.detail }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          if [ -z "$BOT_TOKEN" ] || [ -z "$ADMIN_TELEGRAM_ID" ]; then
-            echo "::warning::BOT_TOKEN / ADMIN_TELEGRAM_ID secrets are not set — skipping Telegram alert."
-            exit 0
-          fi
-          text="🔴 Прод недоступен"
-          if [ "$BACKEND_OK" = "false" ]; then
-            text="${text}
-          Backend: ${BACKEND_DETAIL}"
-          fi
-          if [ "$FRONTEND_OK" = "false" ]; then
-            text="${text}
-          Frontend: ${FRONTEND_DETAIL}"
-          fi
-          text="${text}
-          ${RUN_URL}"
-          curl -sS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${ADMIN_TELEGRAM_ID}" \
-            --data-urlencode "text=${text}"
+          echo "❌ Frontend unhealthy: HTTP $code from $url"
+          exit 1

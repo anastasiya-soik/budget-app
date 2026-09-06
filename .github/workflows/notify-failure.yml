@@ -1,36 +1,29 @@
 name: Notify on Failure
 
-# Watches the workflows below and pings the project Telegram bot the moment
-# one of them goes red, so a broken main/nightly job doesn't sit unnoticed
-# until someone happens to open the Actions tab.
+# Watches the workflows below. If one fails, this job fails too so it's
+# visible in the PR/Actions tab. No external notifications — the failure
+# is logged and visible here.
 on:
   workflow_run:
     workflows: ["CI", "DB Backup & Restore Verification"]
     types: [completed]
 
 jobs:
-  notify:
+  check-failure:
     if: github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Send Telegram alert
+      - name: Report failure
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
           WORKFLOW: ${{ github.event.workflow_run.name }}
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           SHA: ${{ github.event.workflow_run.head_sha }}
           ACTOR: ${{ github.event.workflow_run.actor.login }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: |
-          if [ -z "$BOT_TOKEN" ] || [ -z "$ADMIN_TELEGRAM_ID" ]; then
-            echo "::warning::BOT_TOKEN / ADMIN_TELEGRAM_ID secrets are not set — skipping Telegram alert."
-            exit 0
-          fi
-          TEXT=$(printf '🔴 *%s* упал на ветке `%s` (%s)\nАвтор: %s\n%s' \
-            "$WORKFLOW" "$BRANCH" "${SHA:0:7}" "$ACTOR" "$RUN_URL")
-          curl -sS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${ADMIN_TELEGRAM_ID}" \
-            --data-urlencode "text=${TEXT}" \
-            --data-urlencode "parse_mode=Markdown"
+          echo "❌ $WORKFLOW failed on $BRANCH"
+          echo "Commit: ${SHA:0:7}"
+          echo "Author: $ACTOR"
+          echo "Details: $RUN_URL"
+          exit 1
