@@ -147,13 +147,3 @@ app.include_router(feedback.router)
 @app.get("/health", tags=["health"])
 async def health():
     return JSONResponse({"status": "ok"})
-
-
-# TODO(remove after verifying Sentry): temporary endpoint to confirm the
-# capture_exception() wiring above actually reaches the Sentry dashboard
-# in production. No auth, no DB access, no side effects — just raises.
-# Hit it once after this deploys, confirm the event in Sentry, then delete
-# this route (and this comment) in a follow-up commit.
-@app.get("/debug/sentry-test", include_in_schema=False)
-async def debug_sentry_test():
-    raise RuntimeError("Sentry test error — safe to ignore, remove this endpoint after verifying")
