@@ -1,0 +1,43 @@
+name: Production Health Check
+
+# Pings prod on a schedule. This is separate from Sentry (which only sees
+# errors *inside* a running app) — this catches the app not responding at
+# all (crash loop, bad deploy, Railway outage, DNS/TLS issues). If a check
+# fails, the job fails and logs the details.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check backend /health
+        run: |
+          url="${{ vars.PROD_BACKEND_URL || 'https://api.budget-app.up.railway.app' }}/health"
+          for i in 1 2 3; do
+            code=$(curl -sS -o /tmp/backend_body -w '%{http_code}' --max-time 10 "$url" 2>/dev/null || echo "000")
+            if [ "$code" = "200" ] && grep -q '"status":\s*"ok"' /tmp/backend_body 2>/dev/null; then
+              echo "✅ Backend OK ($url)"
+              exit 0
+            fi
+            [ $i -lt 3 ] && sleep 10
+          done
+          echo "❌ Backend unhealthy: HTTP $code from $url"
+          exit 1
+
+      - name: Check frontend /
+        run: |
+          url="${{ vars.PROD_FRONTEND_URL || 'https://budget-app.up.railway.app' }}/"
+          for i in 1 2 3; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$url" 2>/dev/null || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "✅ Frontend OK ($url)"
+              exit 0
+            fi
+            [ $i -lt 3 ] && sleep 10
+          done
+          echo "❌ Frontend unhealthy: HTTP $code from $url"
+          exit 1

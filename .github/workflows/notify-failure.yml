@@ -1,0 +1,29 @@
+name: Notify on Failure
+
+# Watches the workflows below. If one fails, this job fails too so it's
+# visible in the PR/Actions tab. No external notifications — the failure
+# is logged and visible here.
+on:
+  workflow_run:
+    workflows: ["CI", "DB Backup & Restore Verification"]
+    types: [completed]
+
+jobs:
+  check-failure:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Report failure
+        env:
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          ACTOR: ${{ github.event.workflow_run.actor.login }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          echo "❌ $WORKFLOW failed on $BRANCH"
+          echo "Commit: ${SHA:0:7}"
+          echo "Author: $ACTOR"
+          echo "Details: $RUN_URL"
+          exit 1

@@ -1,0 +1,38 @@
+name: Security Watch
+
+# Polls open Dependabot alerts on a schedule, independent of any PR/push.
+# If there are critical/high vulnerabilities, this job fails so it's
+# visible in Actions. Check the logs for the full list.
+on:
+  schedule:
+    - cron: '0 7 * * 1' # every Monday, 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: read
+
+jobs:
+  dependabot-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check open critical/high Dependabot alerts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          alerts=$(gh api "repos/${{ github.repository }}/dependabot/alerts" \
+            --paginate \
+            --jq '[.[] | select(.state == "open" and (.security_advisory.severity == "critical" or .security_advisory.severity == "high"))]' \
+            2>/dev/null || echo '[]')
+          count=$(echo "$alerts" | jq 'length')
+
+          if [ "$count" -gt 0 ]; then
+            echo "⚠️ Found $count open critical/high vulnerabilities:"
+            echo "$alerts" | jq -r '.[] | "  • [\(.security_advisory.severity | ascii_upcase)] \(.dependency.package.name): \(.security_advisory.summary)"'
+            echo ""
+            echo "See: https://github.com/${{ github.repository }}/security/dependabot"
+            exit 1
+          else
+            echo "✅ No open critical/high vulnerabilities"
+          fi
