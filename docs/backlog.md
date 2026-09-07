@@ -72,7 +72,7 @@
 | S-03 | Docker multi-stage build | P0 | 2 | `[x]` | Image <200 MB; non-root user |
 | S-04 | Railway deploy + env secrets | P0 | 2 | `[x]` | No secrets in code; prod URL live |
 | S-05 | HTTPS + HSTS | P0 | 1 | `[x]` | Railway auto-TLS; HSTS header |
-| S-06 | Rate limiting on auth endpoints | P0 | 2 | `[x]` | 60/min per IP; 429 with Retry-After |
+| S-06 | Rate limiting on auth endpoints | P0 | 2 | `[x]` | 60/min per IP on register/telegram, 10/min on login; 429 with Retry-After |
 | S-07 | Security headers middleware | P0 | 2 | `[x]` | CSP, X-Frame-Options, etc. |
 | S-08 | Automated DB backups to R2 | Must | 3 | `[-]` | Deferred — pet project, Railway Pro required for backup access |
 | S-09 | Dependabot for Python + npm | Must | 1 | `[x]` | PRs within 24h of new CVE |

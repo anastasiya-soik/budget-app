@@ -92,9 +92,10 @@ from slowapi.util import get_remote_address
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
-# On auth routes (register, login, telegram)
+# On auth routes: register/telegram are 60/minute, but /login is tighter
+# (10/minute) since it's the one that's actually brute-force-able
 @router.post("/login")
-@limiter.limit("60/minute")
+@limiter.limit("10/minute")
 async def login(request: Request, ...):
     ...
 

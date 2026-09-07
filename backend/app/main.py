@@ -7,6 +7,7 @@ import sentry_sdk
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -82,6 +83,12 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+# Trusted hosts — rejects requests with a spoofed Host header before they reach
+# routing/CORS. Added last so it runs outermost (Starlette runs the
+# most-recently-added middleware first). No-op (allow_hosts=["*"]) unless
+# ALLOWED_HOSTS is set — see app/config.py for why that's the safe default.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.TRUSTED_HOSTS)
 
 
 @app.exception_handler(Exception)

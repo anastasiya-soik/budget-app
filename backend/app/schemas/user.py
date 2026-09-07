@@ -6,12 +6,14 @@ from pydantic import BaseModel, EmailStr, Field
 
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
+    # bcrypt silently truncates anything past 72 bytes, so cap here rather
+    # than let two long-but-different passwords collide on the same hash.
+    password: str = Field(min_length=8, max_length=72)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=72)
 
 
 class UserOut(BaseModel):
@@ -38,5 +40,5 @@ class UpdateMeRequest(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    old_password: str
-    new_password: str = Field(min_length=8)
+    old_password: str = Field(max_length=72)
+    new_password: str = Field(min_length=8, max_length=72)
