@@ -12,11 +12,24 @@ const cardVariants = {
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.35, delay: i * 0.08 } }),
 }
 
-const CategoryModal = ({ category, onSave, onClose, loading, error }) => {
+// Palette offered as the default color for a new category, so two categories
+// created back-to-back (without touching the native color picker) don't end
+// up sharing the same swatch on the Overview donut chart.
+const DEFAULT_PALETTE = [
+  '#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981',
+  '#2060D0', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4',
+]
+
+const nextDefaultColor = (usedColors) => {
+  const used = new Set(usedColors.map((c) => c.toLowerCase()))
+  return DEFAULT_PALETTE.find((c) => !used.has(c.toLowerCase())) || DEFAULT_PALETTE[usedColors.length % DEFAULT_PALETTE.length]
+}
+
+const CategoryModal = ({ category, existingColors = [], onSave, onClose, loading, error }) => {
   useScrollLock()
   const { t } = useTranslation()
   const [name, setName] = useState(category?.name || '')
-  const [color, setColor] = useState(category?.color || '#E52B50')
+  const [color, setColor] = useState(category?.color || nextDefaultColor(existingColors))
   const [type, setType] = useState(category?.type || 'expense')
   const [localError, setLocalError] = useState('')
 
@@ -233,7 +246,14 @@ const Categories = () => {
 
       <AnimatePresence>
         {modal !== null && (
-          <CategoryModal category={modal.category} onSave={handleSave} onClose={() => setModal(null)} loading={isMutating} error={mutError} />
+          <CategoryModal
+            category={modal.category}
+            existingColors={categories.filter((c) => c.id !== modal.category?.id).map((c) => c.color)}
+            onSave={handleSave}
+            onClose={() => setModal(null)}
+            loading={isMutating}
+            error={mutError}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -63,7 +63,7 @@ async def register_user(
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("60/minute")
+@limiter.limit("10/minute")  # tighter than register/telegram — this is the brute-force-able one
 async def login_user(
     body: LoginRequest,
     request: Request,

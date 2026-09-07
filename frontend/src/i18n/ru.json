@@ -12,6 +12,7 @@
     "income": "Доходы",
     "expenses": "Расходы",
     "spendingByCategory": "Расходы по категориям",
+    "otherCategory": "Остальное",
     "noExpenseData": "Нет расходов в этом месяце",
     "prevMonth": "← Пред.",
     "nextMonth": "След. →",

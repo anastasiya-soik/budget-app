@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend,
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from 'recharts'
 import analyticsApi from '../api/analytics'
 import authApi from '../api/auth'
@@ -26,6 +26,17 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent })
     </text>
   )
 }
+
+// Darkens (percent < 0) or lightens (percent > 0) a "#rrggbb" color — used to
+// turn each flat category color into a two-stop gradient for the donut.
+const shadeColor = (hex, percent) => {
+  const num = parseInt(hex.replace('#', ''), 16)
+  const clamp = (v) => Math.max(0, Math.min(255, v))
+  const r = clamp((num >> 16) + percent)
+  const g = clamp(((num >> 8) & 0x00ff) + percent)
+  const b = clamp((num & 0x0000ff) + percent)
+  return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`
+}
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay: i * 0.08 } }),
@@ -47,6 +58,7 @@ const Overview = ({ onQuickAdd }) => {
 
   const [editingBalance, setEditingBalance] = useState(false)
   const [editValue, setEditValue] = useState('')
+  const [activeSlice, setActiveSlice] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: summary, isLoading: sumLoading } = useQuery({
@@ -100,7 +112,19 @@ const Overview = ({ onQuickAdd }) => {
     animate(expenseMV, summary?.expense_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
   }, [summary?.income_cents, summary?.expense_cents])
 
-  const pieItems = catData?.items || []
+  // The backend groups everything past the top 5 categories into a single
+  // bucket with category_id: null — give it a localized label instead of
+  // the raw "Other" string that came back from the API.
+  const pieItems = (catData?.items || []).map((item) => ({
+    ...item,
+    name: item.category_id ? item.name : t('overview.otherCategory'),
+  }))
+
+  useEffect(() => {
+    setActiveSlice(null)
+  }, [selectedMonth])
+
+  const toggleSlice = (i) => setActiveSlice((cur) => (cur === i ? null : i))
 
   if (sumLoading && catLoading && monthSumLoading && trendLoading) {
     return <SkeletonOverview />
@@ -269,22 +293,67 @@ const Overview = ({ onQuickAdd }) => {
             {t('overview.noExpenseData')}
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie
-                data={pieItems} dataKey="total_cents" nameKey="name"
-                cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
-                label={renderPieLabel}
-                labelLine={false}
-              >
-                {pieItems.map((entry, i) => (
-                  <Cell key={entry.category_id || i} fill={entry.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v) => [formatMoney(v, currency), '']} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-              <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{v}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <defs>
+                  {pieItems.map((entry, i) => {
+                    const base = entry.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length]
+                    return (
+                      <linearGradient key={`grad-${entry.category_id || i}`} id={`pie-grad-${i}`} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor={shadeColor(base, 20)} />
+                        <stop offset="100%" stopColor={shadeColor(base, -30)} />
+                      </linearGradient>
+                    )
+                  })}
+                </defs>
+                <Pie
+                  data={pieItems} dataKey="total_cents" nameKey="name"
+                  cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
+                  label={renderPieLabel}
+                  labelLine={false}
+                  onClick={(_, i) => toggleSlice(i)}
+                  cursor="pointer"
+                >
+                  {pieItems.map((entry, i) => (
+                    <Cell
+                      key={entry.category_id || i}
+                      fill={`url(#pie-grad-${i})`}
+                      stroke={activeSlice === i ? 'var(--surface)' : 'none'}
+                      strokeWidth={activeSlice === i ? 3 : 0}
+                      opacity={activeSlice === null || activeSlice === i ? 1 : 0.35}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v) => formatMoney(v, currency)} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
+              </PieChart>
+            </ResponsiveContainer>
+
+            {/* Per-category breakdown: amount + share of total, click to highlight in the donut above */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+              {pieItems.map((item, i) => (
+                <div
+                  key={item.category_id || i}
+                  onClick={() => toggleSlice(i)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+                    padding: '7px 8px', borderRadius: '8px', cursor: 'pointer', userSelect: 'none',
+                    background: activeSlice === i ? 'var(--bg)' : 'transparent',
+                    opacity: activeSlice === null || activeSlice === i ? 1 : 0.5,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <span style={{ width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0, background: item.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length] }} />
+                    <span style={{ fontSize: '12px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexShrink: 0 }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(item.total_cents, currency)}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', minWidth: '34px', textAlign: 'right' }}>{item.percentage}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </motion.div>
     </div>

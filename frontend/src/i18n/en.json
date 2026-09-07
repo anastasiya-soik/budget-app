@@ -12,6 +12,7 @@
     "income": "Income",
     "expenses": "Expenses",
     "spendingByCategory": "Spending by Category",
+    "otherCategory": "Other",
     "noExpenseData": "No expense data this month",
     "prevMonth": "← Prev",
     "nextMonth": "Next →",
