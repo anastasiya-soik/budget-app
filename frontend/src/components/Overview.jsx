@@ -2,41 +2,14 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import {
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
-} from 'recharts'
 import analyticsApi from '../api/analytics'
 import authApi from '../api/auth'
 import useAuthStore from '../store/authStore'
-import { formatMoney, currentMonth, shiftMonth } from '../utils'
+import { formatMoney, currentMonth } from '../utils'
 import { SkeletonOverview } from './ui/Skeleton'
 import { useToast } from '../hooks/useToast'
+import CategoryPieChart from './CategoryPieChart'
 
-const FALLBACK_COLORS = ['#E52B50', '#64A0FF', '#AA40FF', '#E8A020', '#10b981', '#2060D0']
-
-const RADIAN = Math.PI / 180
-const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (percent < 0.07) return null
-  const r = innerRadius + (outerRadius - innerRadius) * 0.55
-  const x = cx + r * Math.cos(-midAngle * RADIAN)
-  const y = cy + r * Math.sin(-midAngle * RADIAN)
-  return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600} style={{ pointerEvents: 'none' }}>
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  )
-}
-
-// Darkens (percent < 0) or lightens (percent > 0) a "#rrggbb" color — used to
-// turn each flat category color into a two-stop gradient for the donut.
-const shadeColor = (hex, percent) => {
-  const num = parseInt(hex.replace('#', ''), 16)
-  const clamp = (v) => Math.max(0, Math.min(255, v))
-  const r = clamp((num >> 16) + percent)
-  const g = clamp(((num >> 8) & 0x00ff) + percent)
-  const b = clamp((num & 0x0000ff) + percent)
-  return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`
-}
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i) => ({ opacity: 1, y: 0, transition: { duration: 0.4, delay: i * 0.08 } }),
@@ -48,32 +21,14 @@ const Overview = ({ onQuickAdd }) => {
   const showToast = useToast()
   const currency = user?.currency || 'USD'
   const month = currentMonth()
-  // Month shown in the "spending by category" pie chart — independently
-  // navigable, capped so it can never go past the current month.
-  const [selectedMonth, setSelectedMonth] = useState(month)
-  const isCurrentMonthSelected = selectedMonth >= currentMonth()
-  const goPrevMonth = () => setSelectedMonth((m) => shiftMonth(m, -1))
-  const goNextMonth = () => setSelectedMonth((m) => (m >= currentMonth() ? m : shiftMonth(m, 1)))
-  const goToday = () => setSelectedMonth(currentMonth())
 
   const [editingBalance, setEditingBalance] = useState(false)
   const [editValue, setEditValue] = useState('')
-  const [activeSlice, setActiveSlice] = useState(null)
   const queryClient = useQueryClient()
 
   const { data: summary, isLoading: sumLoading } = useQuery({
     queryKey: ['analytics', 'summary', month],
     queryFn: () => analyticsApi.summary(month),
-  })
-
-  const { data: monthSummary, isLoading: monthSumLoading } = useQuery({
-    queryKey: ['analytics', 'summary', selectedMonth],
-    queryFn: () => analyticsApi.summary(selectedMonth),
-  })
-
-  const { data: catData, isLoading: catLoading } = useQuery({
-    queryKey: ['analytics', 'categories', selectedMonth],
-    queryFn: () => analyticsApi.categories(selectedMonth),
   })
 
   // Fixed 6-month lookback, used only for the "avg. expense" subtitle below.
@@ -112,31 +67,11 @@ const Overview = ({ onQuickAdd }) => {
     animate(expenseMV, summary?.expense_cents ?? 0, { duration: 0.75, ease: [0.22, 1, 0.36, 1] })
   }, [summary?.income_cents, summary?.expense_cents])
 
-  // The backend groups everything past the top 5 categories into a single
-  // bucket with category_id: null — give it a localized label instead of
-  // the raw "Other" string that came back from the API.
-  const pieItems = (catData?.items || []).map((item) => ({
-    ...item,
-    name: item.category_id ? item.name : t('overview.otherCategory'),
-  }))
-
-  useEffect(() => {
-    setActiveSlice(null)
-  }, [selectedMonth])
-
-  const toggleSlice = (i) => setActiveSlice((cur) => (cur === i ? null : i))
-
-  if (sumLoading && catLoading && monthSumLoading && trendLoading) {
+  if (sumLoading && trendLoading) {
     return <SkeletonOverview />
   }
 
   const monthLabel = new Date().toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long' })
-  const selectedMonthLabel = (() => {
-    const [y, m] = selectedMonth.split('-').map(Number)
-    return new Date(Date.UTC(y, m - 1, 1)).toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', {
-      month: 'long', year: 'numeric', timeZone: 'UTC',
-    })
-  })()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -247,115 +182,8 @@ const Overview = ({ onQuickAdd }) => {
         </motion.div>
       </div>
 
-      {/* Monthly analytics — navigable spending-by-category pie chart */}
-      <motion.div custom={3} variants={cardVariants} initial="hidden" animate="visible"
-        style={{ background: 'var(--surface)', border: '0.5px solid var(--border-card)', borderRadius: '14px', padding: '20px' }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '8px' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t('overview.spendingByCategory')}</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              onClick={goPrevMonth}
-              style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, border: 'none', cursor: 'pointer', background: 'var(--bg)', color: 'var(--text-muted)' }}
-            >
-              {t('overview.prevMonth')}
-            </button>
-            <button
-              onClick={goToday}
-              disabled={isCurrentMonthSelected}
-              style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--bg)', color: 'var(--text-muted)', opacity: isCurrentMonthSelected ? 0.4 : 1, cursor: isCurrentMonthSelected ? 'default' : 'pointer' }}
-            >
-              {t('overview.todayMonth')}
-            </button>
-            <button
-              onClick={goNextMonth}
-              disabled={isCurrentMonthSelected}
-              style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600, border: 'none', background: 'var(--bg)', color: 'var(--text-muted)', opacity: isCurrentMonthSelected ? 0.4 : 1, cursor: isCurrentMonthSelected ? 'default' : 'pointer' }}
-            >
-              {t('overview.nextMonth')}
-            </button>
-          </div>
-        </div>
-
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 12px', textTransform: 'capitalize' }}>{selectedMonthLabel}</p>
-
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            {t('overview.income')}: <strong style={{ color: 'var(--text-primary)' }}>{formatMoney(monthSummary?.income_cents ?? 0, currency)}</strong>
-          </span>
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            {t('overview.expenses')}: <strong style={{ color: 'var(--text-primary)' }}>{formatMoney(monthSummary?.expense_cents ?? 0, currency)}</strong>
-          </span>
-        </div>
-
-        {pieItems.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', fontSize: '13px', color: 'var(--text-muted)' }}>
-            {t('overview.noExpenseData')}
-          </div>
-        ) : (
-          <>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <defs>
-                  {pieItems.map((entry, i) => {
-                    const base = entry.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length]
-                    return (
-                      <linearGradient key={`grad-${entry.category_id || i}`} id={`pie-grad-${i}`} x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor={shadeColor(base, 20)} />
-                        <stop offset="100%" stopColor={shadeColor(base, -30)} />
-                      </linearGradient>
-                    )
-                  })}
-                </defs>
-                <Pie
-                  data={pieItems} dataKey="total_cents" nameKey="name"
-                  cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}
-                  label={renderPieLabel}
-                  labelLine={false}
-                  onClick={(_, i) => toggleSlice(i)}
-                  cursor="pointer"
-                >
-                  {pieItems.map((entry, i) => (
-                    <Cell
-                      key={entry.category_id || i}
-                      fill={`url(#pie-grad-${i})`}
-                      stroke={activeSlice === i ? 'var(--surface)' : 'none'}
-                      strokeWidth={activeSlice === i ? 3 : 0}
-                      opacity={activeSlice === null || activeSlice === i ? 1 : 0.35}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => formatMoney(v, currency)} contentStyle={{ borderRadius: '10px', border: '1px solid var(--border-card)', fontSize: '12px', background: 'var(--surface)', color: 'var(--text-primary)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-
-            {/* Per-category breakdown: amount + share of total, click to highlight in the donut above */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
-              {pieItems.map((item, i) => (
-                <div
-                  key={item.category_id || i}
-                  onClick={() => toggleSlice(i)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
-                    padding: '7px 8px', borderRadius: '8px', cursor: 'pointer', userSelect: 'none',
-                    background: activeSlice === i ? 'var(--bg)' : 'transparent',
-                    opacity: activeSlice === null || activeSlice === i ? 1 : 0.5,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                    <span style={{ width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0, background: item.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length] }} />
-                    <span style={{ fontSize: '12px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexShrink: 0 }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(item.total_cents, currency)}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', minWidth: '34px', textAlign: 'right' }}>{item.percentage}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </motion.div>
+      {/* Monthly analytics — navigable spending-by-category donut chart (shadcn/ui) */}
+      <CategoryPieChart currency={currency} animationIndex={3} />
     </div>
   )
 }
