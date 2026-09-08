@@ -25,6 +25,26 @@ const slugify = (str, i) => {
   return slug || `category-${i}`
 }
 
+// Categories are free to reuse the same custom color (the color picker in
+// Categories.jsx only *suggests* distinct colors, it doesn't enforce it),
+// which would make two slices in the donut indistinguishable. Walk the
+// items in order, keep each category's own color as long as it hasn't
+// been claimed yet, and hand duplicates/missing colors the next unused
+// swatch from FALLBACK_COLORS so every slice in this chart is unique.
+const resolveDistinctColors = (items) => {
+  const used = new Set()
+  return items.map((item, i) => {
+    const own = item.color?.toLowerCase()
+    if (own && !used.has(own)) {
+      used.add(own)
+      return item.color
+    }
+    const next = FALLBACK_COLORS.find((c) => !used.has(c.toLowerCase())) || FALLBACK_COLORS[i % FALLBACK_COLORS.length]
+    used.add(next.toLowerCase())
+    return next
+  })
+}
+
 // Donut chart of spending by category for a navigable month, built on
 // shadcn/ui's Card + Chart primitives (see src/components/ui/{card,chart}.jsx).
 const CategoryPieChart = ({ currency, animationIndex = 3 }) => {
@@ -54,13 +74,17 @@ const CategoryPieChart = ({ currency, animationIndex = 3 }) => {
   // The backend groups everything past the top 5 categories into a single
   // bucket with category_id: null — give it a localized label instead of
   // the raw "Other" string that came back from the API.
-  const pieItems = (catData?.items || []).map((item, i) => {
+  const rawItems = (catData?.items || []).map((item, i) => {
     const name = item.category_id ? item.name : t('overview.otherCategory')
     return { ...item, name, key: slugify(item.category_id ? item.name : 'other', i) }
   })
 
-  const chartConfig = pieItems.reduce((acc, item, i) => {
-    acc[item.key] = { label: item.name, color: item.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length] }
+  // Resolve each item's rendered color, guaranteeing no two slices share one.
+  const distinctColors = resolveDistinctColors(rawItems)
+  const pieItems = rawItems.map((item, i) => ({ ...item, color: distinctColors[i] }))
+
+  const chartConfig = pieItems.reduce((acc, item) => {
+    acc[item.key] = { label: item.name, color: item.color }
     return acc
   }, {})
 
@@ -77,7 +101,7 @@ const CategoryPieChart = ({ currency, animationIndex = 3 }) => {
 
   return (
     <motion.div custom={animationIndex} variants={cardVariants} initial="hidden" animate="visible">
-      <Card className="rounded-[14px] border-border/60 shadow-none">
+      <Card className="rounded-[14px] border-border shadow-none">
         <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-0">
           <div>
             <CardTitle className="text-[13px] font-semibold">{t('overview.spendingByCategory')}</CardTitle>
@@ -166,10 +190,7 @@ const CategoryPieChart = ({ currency, animationIndex = 3 }) => {
                 )}
               >
                 <div className="flex min-w-0 items-center gap-2">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: item.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length] }}
-                  />
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
                   <span className="truncate text-xs text-foreground">{item.name}</span>
                 </div>
                 <div className="flex shrink-0 items-baseline gap-2.5">
