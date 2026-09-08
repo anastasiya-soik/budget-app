@@ -39,7 +39,10 @@ body {
   --accent-foreground: 348 78% 53%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --border: 330 35% 91%;
+  /* Named --ui-border (not --border) — the app already has its own
+     --border custom property (a translucent pink used for hairline
+     dividers) and reusing the name would silently clash with it. */
+  --ui-border: 330 35% 91%;
   --input: 330 35% 91%;
   --ring: 348 78% 53%;
   --radius: 0.875rem;
@@ -67,7 +70,7 @@ html.dark {
   --accent-foreground: 350 100% 71%;
   --destructive: 0 91% 71%;
   --destructive-foreground: 270 23% 5%;
-  --border: 270 15% 18%;
+  --ui-border: 262 20% 15%;
   --input: 270 15% 18%;
   --ring: 350 100% 71%;
   --chart-1: 350 100% 71%;
