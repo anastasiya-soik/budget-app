@@ -8,7 +8,7 @@
 ## Base URL
 
 - Local: `http://localhost:8000`
-- Production: `https://api.budget-app.up.railway.app` (update after deploy)
+- Production: `https://budget-app-production-9ed5.up.railway.app`
 
 ## Auth convention
 

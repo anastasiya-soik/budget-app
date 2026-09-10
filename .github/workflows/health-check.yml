@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Check backend /health
         run: |
-          url="${{ vars.PROD_BACKEND_URL || 'https://api.budget-app.up.railway.app' }}/health"
+          url="${{ vars.PROD_BACKEND_URL || 'https://budget-app-production-9ed5.up.railway.app' }}/health"
           for i in 1 2 3; do
             code=$(curl -sS -o /tmp/backend_body -w '%{http_code}' --max-time 10 "$url" 2>/dev/null || echo "000")
             if [ "$code" = "200" ] && grep -q '"status":\s*"ok"' /tmp/backend_body 2>/dev/null; then
@@ -30,7 +30,7 @@ jobs:
 
       - name: Check frontend /
         run: |
-          url="${{ vars.PROD_FRONTEND_URL || 'https://budget-app.up.railway.app' }}/"
+          url="${{ vars.PROD_FRONTEND_URL || 'https://budgetapp-production-a39a.up.railway.app' }}/"
           for i in 1 2 3; do
             code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$url" 2>/dev/null || echo "000")
             if [ "$code" = "200" ]; then
