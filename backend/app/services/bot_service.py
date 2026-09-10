@@ -22,12 +22,14 @@ def _is_admin(telegram_id: int) -> bool:
 
 _BTN_STATS = "📊 Статистика"
 _BTN_HELP = "❓ Помощь"
+_BTN_ADMIN = "⚙️ Админ-панель"
 
-_REPLY_KB = {
-    "keyboard": [[_BTN_STATS, _BTN_HELP]],
-    "resize_keyboard": True,
-    "persistent": True,
-}
+
+def _reply_kb(telegram_id: int) -> dict:
+    row = [_BTN_STATS, _BTN_HELP]
+    if _is_admin(telegram_id):
+        row.append(_BTN_ADMIN)
+    return {"keyboard": [row], "resize_keyboard": True, "persistent": True}
 
 
 async def handle_update(update: dict, db: AsyncSession) -> None:
@@ -47,7 +49,7 @@ async def handle_update(update: dict, db: AsyncSession) -> None:
         await _cmd_stats(telegram_id, db)
     elif cmd in ("/help", _BTN_HELP):
         await _cmd_help(telegram_id)
-    elif cmd == "/admin" and _is_admin(telegram_id):
+    elif cmd in ("/admin", _BTN_ADMIN) and _is_admin(telegram_id):
         await _cmd_admin_stats(telegram_id, db)
     elif text.startswith("/broadcast ") and _is_admin(telegram_id):
         broadcast_text = text[len("/broadcast "):].strip()
@@ -71,7 +73,7 @@ async def _cmd_start(telegram_id: int) -> None:
     await telegram_service.send_message(
         telegram_id,
         "Быстрые кнопки всегда под рукой 👇",
-        reply_markup=_REPLY_KB,
+        reply_markup=_reply_kb(telegram_id),
     )
 
 
@@ -134,7 +136,8 @@ async def _cmd_admin_stats(telegram_id: int, db: AsyncSession) -> None:
     )).scalar_one()
 
     new_users = (await db.execute(
-        select(func.count()).select_from(User).where(User.created_at >= first_of_month)
+        select(func.count()).select_from(User)
+        .where(User.created_at >= first_of_month.replace(tzinfo=None))
     )).scalar_one()
 
     total_tx = (await db.execute(
@@ -163,7 +166,8 @@ async def _cmd_admin_stats(telegram_id: int, db: AsyncSession) -> None:
         f"📊 *Активность за {month_str}:*\n"
         f"• Транзакций: {month_tx}\n"
         f"• Активных юзеров: {active_users}\n"
-        f"• Всего транзакций в БД: {total_tx:,}"
+        f"• Всего транзакций в БД: {total_tx:,}\n\n"
+        f"✉️ Рассылка всем: `/broadcast <текст>`"
     )
     await telegram_service.send_message(telegram_id, text, parse_mode="Markdown")
 
